@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f6f1e8;
+  --foreground: #1f1a16;
+
+  --cream: #f6f1e8;
+  --paper: #c49a6c;
+  --olive: #6f7d43;
+  --olive-dark: #4f5d32;
+  --terracotta: #b76e45;
+  --soft-white: #fffdf8;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #171411;
+    --foreground: #fff7e8;
+
+    --cream: #1f1a16;
+    --paper: #b8895e;
+    --olive: #9baa6a;
+    --olive-dark: #c4d18a;
+    --terracotta: #c47a51;
+    --soft-white: #241f1a;
+  }
+}
+
+body {
+  background: #FBFAF6;
+
+  background: var(--background);
+  color: var(--foreground);
+}
+
+#html5-qrcode-button-camera-permission,
+#html5-qrcode-button-camera-start,
+#html5-qrcode-button-camera-stop,
+#html5-qrcode-button-torch,
+#html5-qrcode-select-camera {
+  font: inherit !important;
+}
+
+[id^="claimeat-business-scanner"] {
+  min-height: 360px !important;
+}
+
+[id^="claimeat-business-scanner"] video {
+  width: 100% !important;
+  min-height: 360px !important;
+  object-fit: cover !important;
+  border-radius: 1rem !important;
+}
+
+[id^="claimeat-business-scanner"] img {
+  display: none !important;
+}
+
+/* Softer editorial typography */
+body {
+  background: #FBFAF6;
+
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+::selection {
+  background: #d9c7ad;
+  color: #45382f;
+}
+
+/* ClaimEat mobile polish */
+@media (max-width: 768px) {
+  .claim-scroll-row {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .claim-scroll-row::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  main {
+    scroll-padding-top: 6rem;
+  }
+
+  .deal-mobile-stack {
+    grid-template-columns: 1fr !important;
+  }
+}

@@ -1,0 +1,351 @@
+.header {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  right: 0;
+  left: 0;
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  padding: 0 16px;
+  pointer-events: none;
+}
+
+.pill {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  max-width: calc(100vw - 32px);
+  padding: 8px 12px 8px 14px;
+  border: 1px solid rgba(31, 26, 22, 0.06);
+  border-radius: 999px;
+  background: rgba(255, 253, 248, 0.86);
+  box-shadow:
+    0 1px 0 rgba(31, 26, 22, 0.05),
+    0 18px 44px rgba(31, 26, 22, 0.10);
+  backdrop-filter: blur(22px);
+  pointer-events: auto;
+}
+
+.logoLink {
+  display: inline-flex;
+  align-items: center;
+  color: #1f1a16;
+  text-decoration: none;
+}
+
+.logoWordmark {
+  display: block;
+  width: 106px;
+  height: 38px;
+  object-fit: contain;
+  object-position: left center;
+}
+
+
+.nav,
+.actions {
+  display: flex;
+  align-items: center;
+}
+
+.nav {
+  gap: 18px;
+}
+
+.actions {
+  gap: 8px;
+}
+
+.desktopDivider {
+  width: 1px;
+  height: 20px;
+  flex: 0 0 auto;
+  background: rgba(31, 26, 22, 0.08);
+}
+
+.navItem {
+  color: rgba(31, 26, 22, 0.58);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    color 0.18s ease,
+    background 0.18s ease;
+}
+
+.navItem:hover,
+.navItemActive {
+  color: #1f1a16;
+}
+
+.navItemActive {
+  border-radius: 999px;
+  background: rgba(111, 125, 67, 0.10);
+  padding: 8px 12px;
+  margin: -8px -12px;
+}
+
+.btnGhost,
+.btnSolid,
+.menuButton,
+.mobileGhost,
+.mobileSolid {
+  min-height: 36px;
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.btnGhost {
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  color: rgba(31, 26, 22, 0.72);
+  padding: 8px 6px;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.btnGhost:hover {
+  color: #1f1a16;
+}
+
+.btnSolid {
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  background: #1f1a16;
+  color: white;
+  padding: 8px 15px;
+  font-size: 14px;
+  font-weight: 850;
+  text-decoration: none;
+  box-shadow: 0 8px 18px rgba(31, 26, 22, 0.15);
+}
+
+.menuButton {
+  display: none;
+  width: 40px;
+  border: 1px solid rgba(31, 26, 22, 0.06);
+  background: rgba(255, 255, 255, 0.72);
+  color: #1f1a16;
+  place-items: center;
+}
+
+.mobileMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 16px;
+  left: 16px;
+  display: none;
+  max-height: calc(100vh - 120px);
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  padding: 8px;
+  border: 1px solid rgba(31, 26, 22, 0.06);
+  border-radius: 24px;
+  background: rgba(255, 253, 248, 0.96);
+  box-shadow: 0 18px 42px rgba(31, 26, 22, 0.14);
+  backdrop-filter: blur(22px);
+  pointer-events: auto;
+}
+
+.mobileItem {
+  display: block;
+  width: 100%;
+  border-radius: 16px;
+  color: #1f1a16;
+  padding: 13px 14px;
+  font-size: 15px;
+  font-weight: 750;
+  text-align: left;
+  text-decoration: none;
+}
+
+.mobileItem:hover {
+  background: rgba(111, 125, 67, 0.09);
+}
+
+.mobileActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding-top: 6px;
+}
+
+.mobileGhost,
+.mobileSolid {
+  width: 100%;
+  border: 0;
+  padding: 11px 12px;
+  font-size: 14px;
+  font-weight: 850;
+  text-align: center;
+  text-decoration: none;
+}
+
+.mobileGhost {
+  background: rgba(31, 26, 22, 0.06);
+  color: #1f1a16;
+}
+
+.mobileSolid {
+  background: #1f1a16;
+  color: white;
+}
+
+@media (prefers-color-scheme: dark) {
+  .pill {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(36, 31, 26, 0.82);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.05),
+      0 18px 44px rgba(0, 0, 0, 0.28);
+  }
+
+  .logoLink,
+  .logoText,
+  .navItem:hover,
+  .navItemActive,
+  .btnGhost,
+  .menuButton {
+    color: #fff7e8;
+  }
+
+  .navItem {
+    color: rgba(255, 247, 232, 0.58);
+  }
+
+  .navItemActive {
+    background: rgba(155, 170, 106, 0.16);
+  }
+
+  .desktopDivider {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .btnSolid {
+    background: #9baa6a;
+    color: #171411;
+  }
+
+  .menuButton {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .mobileMenu {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(36, 31, 26, 0.96);
+  }
+
+  .mobileItem {
+    color: #fff7e8;
+  }
+
+  .mobileItem:hover {
+    background: rgba(155, 170, 106, 0.16);
+  }
+
+  .mobileGhost {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff7e8;
+  }
+
+  .mobileSolid {
+    background: #9baa6a;
+    color: #171411;
+  }
+}
+
+@media (max-width: 860px) {
+  .header {
+    padding: 0 12px;
+  }
+
+  .pill {
+    width: 100%;
+    max-width: none;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 10px 8px 12px;
+    border-radius: 24px;
+  }
+
+  .nav,
+  .actions,
+  .desktopDivider {
+    display: none;
+  }
+
+  .logoWordmark {
+    width: 98px;
+    height: 36px;
+  }
+
+  .menuButton {
+    display: grid;
+  }
+
+  .mobileMenu {
+    display: flex;
+  }
+}
+
+.roleBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  border-radius: 999px;
+  background: rgba(111, 125, 67, 0.10);
+  color: #5d6d32;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.btnGhostButton {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(31, 26, 22, 0.72);
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 8px 6px;
+}
+
+.btnGhostButton:hover {
+  color: #1f1a16;
+}
+
+@media (prefers-color-scheme: dark) {
+  .roleBadge {
+    background: rgba(155, 170, 106, 0.16);
+    color: #c4d18a;
+  }
+
+  .btnGhostButton {
+    color: rgba(255, 247, 232, 0.72);
+  }
+
+  .btnGhostButton:hover {
+    color: #fff7e8;
+  }
+}
+
+.logoWordmark {
+  width: 132px !important;
+  height: 34px !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  display: block !important;
+}

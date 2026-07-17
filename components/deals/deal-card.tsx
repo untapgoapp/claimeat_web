@@ -1,0 +1,388 @@
+"use client";
+
+import Link from "next/link";
+import {
+  ChevronRight,
+  Clock3,
+  Store,
+} from "lucide-react";
+
+import { DealCategoryImage } from "@/components/deals/deal-category-image";
+
+type DealCardDeal = {
+  id: string;
+  title: string;
+  description?: string | null;
+  category?: string | null;
+  status?: string | null;
+
+  price?: number | string | null;
+
+  originalPrice?:
+    | number
+    | string
+    | null;
+
+  original_price?:
+    | number
+    | string
+    | null;
+
+  quantityLeft?:
+    | number
+    | string
+    | null;
+
+  quantity_left?:
+    | number
+    | string
+    | null;
+
+  pickupStart?: string | null;
+  pickup_start?: string | null;
+  pickupEnd?: string | null;
+  pickup_end?: string | null;
+
+  businessName?: string | null;
+  business_name?: string | null;
+  address?: string | null;
+  city?: string | null;
+};
+
+function money(
+  value:
+    | number
+    | string
+    | null
+    | undefined,
+) {
+  const numberValue = Number(
+    value || 0,
+  );
+
+  return new Intl.NumberFormat(
+    "en-GB",
+    {
+      style: "currency",
+      currency: "EUR",
+    },
+  ).format(numberValue);
+}
+
+function formatTime(
+  value: string | null | undefined,
+) {
+  if (!value) {
+    return "TBD";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "TBD";
+  }
+
+  return new Intl.DateTimeFormat(
+    "en-GB",
+    {
+      hour: "2-digit",
+      minute: "2-digit",
+    },
+  ).format(date);
+}
+
+function formatDateLabel(
+  value: string | null | undefined,
+) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const now = new Date();
+
+  const isToday =
+    date.getFullYear() ===
+      now.getFullYear() &&
+    date.getMonth() ===
+      now.getMonth() &&
+    date.getDate() ===
+      now.getDate();
+
+  if (isToday) {
+    return "Today";
+  }
+
+  return new Intl.DateTimeFormat(
+    "en-GB",
+    {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    },
+  ).format(date);
+}
+
+function categoryText(
+  value: string | null | undefined,
+) {
+  if (!value) {
+    return "Rescue bag";
+  }
+
+  const labels: Record<
+    string,
+    string
+  > = {
+    bakery: "Bakery",
+    fruit_veg: "Fruit & veg",
+    grocery: "Grocery",
+    ready_meal: "Ready meal",
+    family_pack: "Family",
+    mystery_bag: "Surprise bag",
+  };
+
+  return (
+    labels[value] ||
+    value.replaceAll("_", " ")
+  );
+}
+
+function isExpired(
+  value: string | null | undefined,
+) {
+  if (!value) {
+    return false;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return false;
+  }
+
+  return date.getTime() <= Date.now();
+}
+
+function getAvailability(
+  deal: DealCardDeal,
+) {
+  const status = String(
+    deal.status || "available",
+  ).toLowerCase();
+
+  const quantityLeft = Number(
+    deal.quantityLeft ??
+      deal.quantity_left ??
+      0,
+  );
+
+  const pickupEnd =
+    deal.pickupEnd ??
+    deal.pickup_end;
+
+  if (
+    status === "sold_out" ||
+    quantityLeft <= 0
+  ) {
+    return {
+      label: "Sold out",
+      available: false,
+      badgeClassName:
+        "bg-[#F2E4DE] text-[#9A543B]",
+    };
+  }
+
+  if (
+    status === "expired" ||
+    isExpired(pickupEnd)
+  ) {
+    return {
+      label: "Expired",
+      available: false,
+      badgeClassName:
+        "bg-[#F2E4DE] text-[#9A543B]",
+    };
+  }
+
+  if (status !== "available") {
+    return {
+      label: "Unavailable",
+      available: false,
+      badgeClassName:
+        "bg-[#ECE8DF] text-[#7A6B5F]",
+    };
+  }
+
+  return {
+    label: "Available",
+    available: true,
+    badgeClassName:
+      "bg-[#E4EAD7] text-[#18392B]",
+  };
+}
+
+export function DealCard({
+  deal,
+}: {
+  deal: DealCardDeal;
+}) {
+  const pickupStart =
+    deal.pickupStart ??
+    deal.pickup_start;
+
+  const pickupEnd =
+    deal.pickupEnd ??
+    deal.pickup_end;
+
+  const originalPrice =
+    deal.originalPrice ??
+    deal.original_price;
+
+  const quantityLeft = Math.max(
+    0,
+    Number(
+      deal.quantityLeft ??
+        deal.quantity_left ??
+        0,
+    ),
+  );
+
+  const businessName =
+    deal.businessName ??
+    deal.business_name ??
+    "Local business";
+
+  const availability =
+    getAvailability(deal);
+
+  return (
+    <Link
+      href={`/deals/${deal.id}`}
+      className="group block focus:outline-none"
+    >
+      <article
+        className={[
+          "h-full overflow-hidden rounded-[1.5rem] bg-[#FCFAF5] ring-1 ring-black/5 transition duration-200 dark:bg-white/[0.03] dark:ring-white/10",
+          availability.available
+            ? "hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(95,78,55,0.12)]"
+            : "opacity-60",
+        ].join(" ")}
+      >
+        <div className="relative">
+          <DealCategoryImage
+            category={deal.category}
+            title={deal.title}
+            className="h-52 w-full rounded-none"
+          />
+
+          <div className="absolute left-3 top-3 flex flex-wrap gap-2">
+            <span
+              className={[
+                "rounded-full px-3 py-1.5 text-xs font-black shadow-sm",
+                availability.badgeClassName,
+              ].join(" ")}
+            >
+              {availability.label}
+            </span>
+
+            <span className="rounded-full bg-white/92 px-3 py-1.5 text-xs font-black text-[#18392B] shadow-sm backdrop-blur">
+              {categoryText(
+                deal.category,
+              )}
+            </span>
+          </div>
+
+          <span
+            className={[
+              "absolute bottom-3 right-3 rounded-full border-2 border-white px-3 py-1.5 text-sm font-black shadow-sm",
+              availability.available
+                ? "bg-[#FFF2A8] text-[#18392B]"
+                : "bg-[#ECEDE9] text-[#747874]",
+            ].join(" ")}
+          >
+            {availability.available
+              ? `${quantityLeft} left`
+              : availability.label}
+          </span>
+        </div>
+
+        <div className="p-5">
+          <h3 className="line-clamp-2 text-2xl font-black leading-[1.05] tracking-[-0.025em] text-[#292621] dark:text-white">
+            {deal.title}
+          </h3>
+
+          <p className="mt-2 flex items-center gap-2 text-sm font-semibold text-black/50 dark:text-white/40">
+            <Store
+              size={15}
+              className="shrink-0 text-[#176862]"
+            />
+
+            <span className="truncate">
+              {businessName}
+            </span>
+          </p>
+
+          <div className="mt-5 flex items-center gap-3 rounded-[1.1rem] bg-[#F1EEE7] px-4 py-3 dark:bg-white/5">
+            <Clock3
+              size={19}
+              className="shrink-0 text-[#176862]"
+            />
+
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-black/40 dark:text-white/35">
+                {formatDateLabel(
+                  pickupStart,
+                )}
+              </p>
+
+              <p className="mt-0.5 truncate text-sm font-black text-[#292621] dark:text-white">
+                {formatTime(
+                  pickupStart,
+                )}{" "}
+                –{" "}
+                {formatTime(
+                  pickupEnd,
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 flex items-end justify-between gap-4 border-t border-black/8 pt-4 dark:border-white/10">
+            <div>
+              {originalPrice ? (
+                <p className="text-sm font-bold text-black/35 line-through dark:text-white/30">
+                  {money(
+                    originalPrice,
+                  )}
+                </p>
+              ) : null}
+
+              <p
+                className={[
+                  "text-3xl font-black tracking-[-0.04em]",
+                  availability.available
+                    ? "text-[#176862]"
+                    : "text-black/40 dark:text-white/35",
+                ].join(" ")}
+              >
+                {money(deal.price)}
+              </p>
+            </div>
+
+            <div className="grid h-11 w-11 place-items-center rounded-full bg-[#18392B] text-white transition group-hover:translate-x-1">
+              <ChevronRight size={22} />
+            </div>
+          </div>
+        </div>
+      </article>
+    </Link>
+  );
+}
+
+export default DealCard;
