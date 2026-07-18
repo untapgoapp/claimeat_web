@@ -82,18 +82,11 @@ export function SiteFooter() {
 
             <Link href="/" className="inline-flex">
               <img
-                src="/brand/claim-eat-logo.png"
+                src="/brand/claim-eat-logo-no-back.png"
                 alt="ClaimEat"
                 className="h-auto w-36"
               />
             </Link>
-
-            <p className="mt-5 max-w-sm text-sm leading-6 text-black/55 dark:text-white/45">
-              Good food nearby, claimed in time.
-              A simple food rescue marketplace
-              built for local shops and everyday
-              pickup.
-            </p>
 
             {/* Mobile accordion */}
             <div className="mt-6 border-t border-black/10 md:hidden dark:border-white/10">
