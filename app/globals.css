@@ -1107,3 +1107,26 @@ a {
 
 /* BUSINESS QR MOBILE END */
 
+
+/* Responsive customer QR codes */
+.claim-qr-responsive {
+  display: grid;
+  width: min(100%, 250px);
+  aspect-ratio: 1;
+  place-items: center;
+  margin-inline: auto;
+}
+
+.claim-qr-responsive svg,
+.claim-qr-responsive canvas {
+  display: block;
+  width: 100% !important;
+  height: auto !important;
+  max-width: 100%;
+}
+
+.claim-pickup-code {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}

@@ -11,7 +11,7 @@ import {
   TimerOff,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { ClaimQr } from "@/components/claim-qr";
+import { QRCodeSVG } from "qrcode.react";
 import {
   useEffect,
   useMemo,
@@ -363,14 +363,14 @@ function BigQrTicket({
           state === "expired" ? "bg-[#fff0ea]" : "bg-[#F4EFE6]",
         ].join(" ")}
       >
-        <div className="mx-auto grid aspect-square w-full max-w-[260px] place-items-center rounded-[1.75rem] bg-white p-3 shadow-[0_10px_30px_rgba(95,78,55,0.08)]">
+        <div className="mx-auto grid h-64 w-64 place-items-center rounded-[1.75rem] bg-white p-5 shadow-[0_10px_30px_rgba(95,78,55,0.08)]">
           {state === "expired" ? (
             <div className="text-center text-[#8a3a20]">
               <TimerOff className="mx-auto" size={72} />
               <p className="mt-3 text-sm font-black">Expired</p>
             </div>
           ) : code ? (
-            <ClaimQr value={code} />
+            <QRCodeSVG value={code} size={210} level="M" />
           ) : (
             <p className="text-sm font-black text-black/40">Missing code</p>
           )}
@@ -380,7 +380,7 @@ function BigQrTicket({
           {state === "expired" ? "Expired code" : "Pickup code"}
         </p>
 
-        <p className="mx-auto mt-2 max-w-full break-all font-mono text-[clamp(1.35rem,7vw,2rem)] font-black leading-tight tracking-[0.08em] text-[#2F261F] [overflow-wrap:anywhere] dark:text-white">
+        <p className="mt-2 text-4xl font-black tracking-[0.16em] text-[#2F261F] dark:text-white">
           {code || "—"}
         </p>
 
