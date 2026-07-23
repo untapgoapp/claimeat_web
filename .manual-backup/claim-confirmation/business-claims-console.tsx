@@ -19,15 +19,12 @@ import {
 } from "react";
 
 import { BusinessQrScannerModal } from "@/components/business/claims/business-qr-scanner-modal";
-import { BusinessClaimConfirmationSheet } from "@/components/business/claims/business-claim-confirmation-sheet";
 import {
   fetchBusinessClaims,
   type BusinessClaim,
 } from "@/lib/api/business-claims";
 import {
-  lookupClaim,
   redeemClaim,
-  type LookupClaimResult,
   type RedeemClaimResult,
 } from "@/lib/api/claims";
 import { formatMoney } from "@/lib/utils/format";
@@ -242,18 +239,6 @@ export function BusinessClaimsConsole({
       null,
     );
 
-  const [
-    pendingClaim,
-    setPendingClaim,
-  ] = useState<LookupClaimResult | null>(
-    null,
-  );
-
-  const [
-    pendingCode,
-    setPendingCode,
-  ] = useState("");
-
   const [error, setError] =
     useState<string | null>(null);
 
@@ -354,7 +339,7 @@ export function BusinessClaimsConsole({
     void refreshClaims();
   }, []);
 
-  async function lookupCode(
+  async function redeemCode(
     rawCode: string,
   ) {
     const normalizedCode =
@@ -368,54 +353,18 @@ export function BusinessClaimsConsole({
     setBusy(true);
     setError(null);
     setResult(null);
-    setPendingClaim(null);
-    setPendingCode("");
-
-    try {
-      const claim =
-        await lookupClaim(
-          normalizedCode,
-        );
-
-      setCode(normalizedCode);
-      setPendingCode(normalizedCode);
-      setPendingClaim(claim);
-    } catch (lookupError) {
-      setError(
-        lookupError instanceof Error
-          ? lookupError.message
-          : "Could not verify claim.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function confirmCollection() {
-    if (!pendingCode) {
-      return;
-    }
-
-    setBusy(true);
-    setError(null);
-    setResult(null);
 
     try {
       const nextResult =
-        await redeemClaim(pendingCode);
+        await redeemClaim(normalizedCode);
 
       setResult(nextResult);
-      setPendingClaim(null);
-      setPendingCode("");
       setCode("");
 
       await refreshClaims();
 
       setFilter("collected");
     } catch (redeemError) {
-      setPendingClaim(null);
-      setPendingCode("");
-
       setError(
         redeemError instanceof Error
           ? redeemError.message
@@ -430,7 +379,7 @@ export function BusinessClaimsConsole({
     event: FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
-    await lookupCode(code);
+    await redeemCode(code);
   }
 
   async function handleScannedCode(
@@ -446,7 +395,7 @@ export function BusinessClaimsConsole({
       return;
     }
 
-    await lookupCode(scannedCode);
+    await redeemCode(scannedCode);
   }
 
   return (
@@ -561,7 +510,7 @@ export function BusinessClaimsConsole({
             >
               {busy
                 ? "Checking…"
-                : "Check code"}
+                : "Collect"}
             </button>
 
             <button
@@ -660,7 +609,7 @@ export function BusinessClaimsConsole({
               claim={claim}
               busy={busy}
               onRedeem={() =>
-                void lookupCode(
+                void redeemCode(
                   getDisplayCode(claim) || "",
                 )
               }
@@ -668,24 +617,6 @@ export function BusinessClaimsConsole({
           ))
         )}
       </section>
-
-      {pendingClaim &&
-      pendingCode ? (
-        <BusinessClaimConfirmationSheet
-          claim={pendingClaim}
-          code={pendingCode}
-          busy={busy}
-          onClose={() => {
-            if (busy) return;
-
-            setPendingClaim(null);
-            setPendingCode("");
-          }}
-          onConfirm={() =>
-            void confirmCollection()
-          }
-        />
-      ) : null}
 
       {scannerOpen ? (
         <BusinessQrScannerModal

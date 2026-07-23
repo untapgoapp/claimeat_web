@@ -1,10 +1,8 @@
-import { BusinessGate } from "@/components/business/business-gate";
 import { BusinessCreateDealForm } from "@/components/business/create/business-create-deal-form";
 
 export default function NewBusinessDealPage() {
   return (
-    <BusinessGate>
-      <div className="business-form-page">
+    <div className="business-form-page">
         <div className="business-form-page__intro">
           <p>Create a rescue offer</p>
 
@@ -18,6 +16,5 @@ export default function NewBusinessDealPage() {
 
         <BusinessCreateDealForm />
       </div>
-    </BusinessGate>
   );
 }

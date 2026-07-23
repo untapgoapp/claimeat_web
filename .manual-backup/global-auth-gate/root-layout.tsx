@@ -5,7 +5,6 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { AuthModal } from "@/components/auth/auth-modal";
 
-import { RouteAccessGate } from "@/components/auth/route-access-gate";
 export const metadata: Metadata = {
   title: {
     default: "ClaimEat",
@@ -60,9 +59,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body><AuthProvider>
-          <RouteAccessGate>
-            {children}
-          </RouteAccessGate>
+          {children}
           <Suspense fallback={null}>
           <AuthModal />
         </Suspense>

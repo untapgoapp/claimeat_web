@@ -1,12 +1,9 @@
-import { BusinessGate } from "@/components/business/business-gate";
 import { BusinessClaimsConsole } from "@/components/business/claims/business-claims-console";
 
 export default function BusinessClaimsPage() {
   return (
     <>
-      <BusinessGate>
-        <BusinessClaimsConsole initialClaims={[]} />
-      </BusinessGate>
+      <BusinessClaimsConsole initialClaims={[]} />
     </>
   );
 }

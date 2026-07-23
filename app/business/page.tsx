@@ -1,12 +1,9 @@
 import { BusinessDashboardView } from "@/components/business/dashboard/business-dashboard";
-import { BusinessGate } from "@/components/business/business-gate";
 
 export default function BusinessPage() {
   return (
     <>
-      <BusinessGate>
-        <BusinessDashboardView />
-      </BusinessGate>
+      <BusinessDashboardView />
     </>
   );
 }

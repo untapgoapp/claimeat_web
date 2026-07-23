@@ -1,10 +1,8 @@
-import { BusinessGate } from "@/components/business/business-gate";
 import { BusinessStoreProfile } from "@/components/business/store/business-store-profile";
 
 export default function BusinessStorePage() {
   return (
-    <BusinessGate>
-      <section className="business-mobile-page">
+    <section className="business-mobile-page">
         <header className="business-page-heading">
           <p>Customer-facing profile</p>
 
@@ -18,6 +16,5 @@ export default function BusinessStorePage() {
 
         <BusinessStoreProfile />
       </section>
-    </BusinessGate>
   );
 }

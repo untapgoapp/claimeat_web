@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 
-import { BusinessGate } from "@/components/business/business-gate";
 import { BusinessShell } from "@/components/business-shell/BusinessShell";
 
 type BusinessLayoutProps = {
@@ -11,10 +10,8 @@ export default function BusinessLayout({
   children,
 }: BusinessLayoutProps) {
   return (
-    <BusinessGate>
-      <BusinessShell>
-        {children}
-      </BusinessShell>
-    </BusinessGate>
+    <BusinessShell>
+      {children}
+    </BusinessShell>
   );
 }
