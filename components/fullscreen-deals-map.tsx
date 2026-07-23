@@ -73,7 +73,7 @@ export function FullscreenDealsMap({
                 : "text-[#6B6258] hover:text-[#18392B]",
             ].join(" ")}
           >
-            Businesses
+            Stores
           </button>
         </div>
       </div>

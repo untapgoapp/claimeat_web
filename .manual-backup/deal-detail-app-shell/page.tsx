@@ -16,6 +16,7 @@ import {
 import { DealCategoryImage } from "@/components/deals/deal-category-image";
 import { DealHeroActions } from "@/components/deals/deal-hero-actions";
 import { DealLocationMap } from "@/components/deals/deal-location-map";
+import { Shell } from "@/components/layout/shell";
 import {
   fetchDealDetail,
   type DealDetail,
@@ -321,8 +322,8 @@ export default async function DealDetailPage({
     false;
 
   return (
-    <>
-      <main className="mx-auto w-full max-w-[780px] pb-60 text-[#292621] dark:text-[#fff7e8]">
+    <Shell>
+      <main className="mx-auto w-full max-w-[780px] pb-40 text-[#292621] dark:text-[#fff7e8]">
         <section className="relative overflow-hidden bg-[#E8D8BE] md:mt-6 md:rounded-t-[2rem]">
           <div className="relative h-[390px] sm:h-[470px]">
             {imageUrl ? (
@@ -627,14 +628,8 @@ export default async function DealDetailPage({
         </div>
       </main>
 
-      <div
-        className="fixed inset-x-0 z-[2147483200] px-3"
-        style={{
-          bottom:
-            "calc(var(--claim-app-nav-height) + env(safe-area-inset-bottom) + 12px)",
-        }}
-      >
-        <div className="mx-auto flex max-w-[430px] items-center justify-between gap-3 rounded-[1.35rem] border border-black/[0.08] bg-[#FFFEFA]/96 p-3 shadow-[0_12px_38px_rgba(37,39,31,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-[#211D19]/96">
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-black/10 bg-[#FFFEFA]/95 px-5 py-4 shadow-[0_-12px_38px_rgba(0,0,0,0.10)] backdrop-blur-xl dark:border-white/10 dark:bg-[#171411]/95">
+        <div className="mx-auto flex max-w-[780px] items-center justify-between gap-5">
           <div className="shrink-0">
             {originalPrice !== null ? (
               <p className="text-sm font-bold text-black/45 line-through dark:text-white/35">
@@ -666,6 +661,6 @@ export default async function DealDetailPage({
           )}
         </div>
       </div>
-    </>
+    </Shell>
   );
 }

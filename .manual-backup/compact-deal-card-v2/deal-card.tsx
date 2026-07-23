@@ -267,7 +267,7 @@ export function DealCard({
     >
       <article
         className={[
-          "h-full overflow-hidden rounded-[1.1rem] bg-[#FCFAF5] ring-1 ring-black/5 transition duration-200 dark:bg-white/[0.03] dark:ring-white/10",
+          "h-full overflow-hidden rounded-[1.25rem] bg-[#FCFAF5] ring-1 ring-black/5 transition duration-200 dark:bg-white/[0.03] dark:ring-white/10",
           availability.available
             ? "hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(95,78,55,0.12)]"
             : "opacity-60",
@@ -283,14 +283,14 @@ export function DealCard({
           <div className="absolute left-2.5 top-2.5 flex flex-wrap gap-1.5">
             <span
               className={[
-                "rounded-full px-2 py-0.5 text-[10px] font-black shadow-sm",
+                "rounded-full px-2.5 py-1 text-[11px] font-black shadow-sm",
                 availability.badgeClassName,
               ].join(" ")}
             >
               {availability.label}
             </span>
 
-            <span className="rounded-full bg-white/92 px-2 py-0.5 text-[10px] font-black text-[#18392B] shadow-sm backdrop-blur">
+            <span className="rounded-full bg-white/92 px-2.5 py-1 text-[11px] font-black text-[#18392B] shadow-sm backdrop-blur">
               {categoryText(
                 deal.category,
               )}
@@ -299,7 +299,7 @@ export function DealCard({
 
           <span
             className={[
-              "absolute bottom-2 right-2 rounded-full border border-white px-2 py-0.5 text-[10px] font-black shadow-sm",
+              "absolute bottom-2.5 right-2.5 rounded-full border-2 border-white px-2.5 py-1 text-xs font-black shadow-sm",
               availability.available
                 ? "bg-[#FFF2A8] text-[#18392B]"
                 : "bg-[#ECEDE9] text-[#747874]",
@@ -311,47 +311,57 @@ export function DealCard({
           </span>
         </div>
 
-        <div className="p-3">
-          <h3 className="line-clamp-1 text-base font-black leading-tight tracking-[-0.025em] text-[#292621] dark:text-white">
+        <div className="p-4">
+          <h3 className="line-clamp-2 text-lg font-black leading-[1.12] tracking-[-0.025em] text-[#292621] dark:text-white">
             {deal.title}
           </h3>
 
-          <div className="mt-1.5 flex min-w-0 items-center justify-between gap-3 text-[11px]">
-            <p className="flex min-w-0 items-center gap-1.5 font-semibold text-black/50 dark:text-white/40">
-              <Store
-                size={14}
-                className="shrink-0 text-[#176862]"
-              />
+          <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-black/50 dark:text-white/40">
+            <Store
+              size={15}
+              className="shrink-0 text-[#176862]"
+            />
 
-              <span className="truncate">
-                {businessName}
-              </span>
-            </p>
+            <span className="truncate">
+              {businessName}
+            </span>
+          </p>
 
-            <p className="flex shrink-0 items-center gap-1 font-black text-[#292621] dark:text-white">
-              <Clock3
-                size={14}
-                className="text-[#176862]"
-              />
+          <div className="mt-3 flex items-center gap-2.5 rounded-xl bg-[#F1EEE7] px-3 py-2.5 dark:bg-white/5">
+            <Clock3
+              size={17}
+              className="shrink-0 text-[#176862]"
+            />
 
-              <span>
-                {formatTime(pickupStart)}
-                {" – "}
-                {formatTime(pickupEnd)}
-              </span>
-            </p>
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold leading-none text-black/40 dark:text-white/35">
+                {formatDateLabel(
+                  pickupStart,
+                )}
+              </p>
+
+              <p className="mt-1 truncate text-xs font-black text-[#292621] dark:text-white">
+                {formatTime(
+                  pickupStart,
+                )}{" "}
+                –{" "}
+                {formatTime(
+                  pickupEnd,
+                )}
+              </p>
+            </div>
           </div>
 
-          <div className="mt-2 flex items-baseline justify-end gap-1.5 border-t border-dashed border-black/8 pt-2 dark:border-white/10">
+          <div className="mt-2.5 flex items-baseline justify-end gap-2 border-t border-dashed border-black/8 pt-2.5 dark:border-white/10">
             {originalPrice ? (
-              <span className="text-[11px] font-semibold text-black/35 line-through dark:text-white/30">
+              <span className="text-xs font-semibold text-black/35 line-through dark:text-white/30">
                 {money(originalPrice)}
               </span>
             ) : null}
 
             <span
               className={[
-                "text-lg font-black leading-none tracking-[-0.035em]",
+                "text-[1.3rem] font-black leading-none tracking-[-0.035em]",
                 availability.available
                   ? "text-[#176862]"
                   : "text-black/40 dark:text-white/35",

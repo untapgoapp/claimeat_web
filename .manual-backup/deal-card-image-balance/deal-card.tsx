@@ -277,7 +277,7 @@ export function DealCard({
           <DealCategoryImage
             category={deal.category}
             title={deal.title}
-            className="h-36 w-full rounded-none sm:h-40"
+            className="h-28 w-full rounded-none sm:h-32"
           />
 
           <div className="absolute left-2.5 top-2.5 flex flex-wrap gap-1.5">
@@ -316,30 +316,40 @@ export function DealCard({
             {deal.title}
           </h3>
 
-          <div className="mt-1.5 flex min-w-0 items-center justify-between gap-3 text-[11px]">
-            <p className="flex min-w-0 items-center gap-1.5 font-semibold text-black/50 dark:text-white/40">
-              <Store
-                size={14}
-                className="shrink-0 text-[#176862]"
-              />
+          <p className="mt-1 flex items-center gap-1.5 text-[11px] font-semibold text-black/50 dark:text-white/40">
+            <Store
+              size={15}
+              className="shrink-0 text-[#176862]"
+            />
 
-              <span className="truncate">
-                {businessName}
-              </span>
-            </p>
+            <span className="truncate">
+              {businessName}
+            </span>
+          </p>
 
-            <p className="flex shrink-0 items-center gap-1 font-black text-[#292621] dark:text-white">
-              <Clock3
-                size={14}
-                className="text-[#176862]"
-              />
+          <div className="mt-2 flex items-center gap-2 rounded-lg bg-[#F1EEE7] px-2.5 py-2 dark:bg-white/5">
+            <Clock3
+              size={15}
+              className="shrink-0 text-[#176862]"
+            />
 
-              <span>
-                {formatTime(pickupStart)}
-                {" – "}
-                {formatTime(pickupEnd)}
-              </span>
-            </p>
+            <div className="min-w-0">
+              <p className="hidden">
+                {formatDateLabel(
+                  pickupStart,
+                )}
+              </p>
+
+              <p className="truncate text-[11px] font-black text-[#292621] dark:text-white">
+                {formatTime(
+                  pickupStart,
+                )}{" "}
+                –{" "}
+                {formatTime(
+                  pickupEnd,
+                )}
+              </p>
+            </div>
           </div>
 
           <div className="mt-2 flex items-baseline justify-end gap-1.5 border-t border-dashed border-black/8 pt-2 dark:border-white/10">

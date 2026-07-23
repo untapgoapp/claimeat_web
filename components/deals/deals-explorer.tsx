@@ -1,23 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import {
-  BadgeCheck,
-  ChevronRight,
-  Map as MapIcon,
+  Check,
+  ChevronDown,
   MapPin,
   Store,
+  X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { DealCard } from "@/components/deals/deal-card";
-import type {
-  Deal,
-  MapBusiness,
-  MapDeal,
-} from "@/lib/types";
-
-type TabMode = "offers" | "businesses";
+import type { Deal } from "@/lib/types";
 
 type CategoryFilter =
   | "all"
@@ -68,40 +61,18 @@ function dealMatchesCategory(
   return deal.category === category;
 }
 
-function getBusinessInitials(name: string) {
-  const words = name
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-
-  if (words.length === 0) {
-    return "CE";
-  }
-
-  if (words.length === 1) {
-    return words[0]
-      .slice(0, 2)
-      .toUpperCase();
-  }
-
-  return `${words[0][0]}${words[1][0]}`
-    .toUpperCase();
-}
-
 export function DealsExplorer({
   deals,
-  businesses,
 }: {
   deals: Deal[];
-  mapDeals: MapDeal[];
-  businesses: MapBusiness[];
-  initialView?: "list";
 }) {
-  const [tab, setTab] =
-    useState<TabMode>("offers");
-
   const [category, setCategory] =
     useState<CategoryFilter>("all");
+
+  const [
+    locationPickerOpen,
+    setLocationPickerOpen,
+  ] = useState(false);
 
   const filteredDeals = useMemo(() => {
     return deals.filter((deal) =>
@@ -113,68 +84,59 @@ export function DealsExplorer({
   }, [category, deals]);
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-6 md:px-6 md:py-8">
-      <div className="overflow-hidden rounded-[2rem] bg-[#FFFEFA] shadow-[0_18px_50px_rgba(95,78,55,0.08)] ring-1 ring-black/5 dark:bg-[#171411] dark:ring-white/10">
-        <header className="border-b border-black/8 px-5 py-7 dark:border-white/10 md:px-8 md:py-8">
-          <div className="flex items-start justify-between gap-5">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#6A8A5E] dark:text-[#E1E9B8]">
+    <section className="min-h-full w-full overflow-x-hidden bg-[#FBFAF6] text-[#18392B] dark:bg-[#171411] dark:text-white">
+      <header className="sticky top-0 z-30 border-b border-black/[0.06] bg-[#FBFAF6]/95 backdrop-blur-xl dark:border-white/10 dark:bg-[#171411]/95">
+        <div
+          className="mx-auto w-full max-w-2xl px-4 pb-4"
+          style={{
+            paddingTop:
+              "max(14px, env(safe-area-inset-top))",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() =>
+              setLocationPickerOpen(true)
+            }
+            className="flex w-full items-center gap-3 rounded-[1.15rem] bg-white px-3.5 py-3 text-left shadow-[0_5px_18px_rgba(37,39,31,0.06)] ring-1 ring-black/[0.06] transition active:scale-[0.99] dark:bg-white/[0.05] dark:ring-white/10"
+            aria-haspopup="dialog"
+            aria-expanded={
+              locationPickerOpen
+            }
+          >
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#E4F3DF] text-[#176862]">
+              <MapPin
+                size={21}
+                strokeWidth={2.4}
+                aria-hidden="true"
+              />
+            </span>
+
+            <span className="min-w-0 flex-1">
+              <span className="block text-[10px] font-black uppercase tracking-[0.15em] text-black/40 dark:text-white/40">
+                Location
+              </span>
+
+              <span className="mt-0.5 block truncate text-base font-black text-[#292621] dark:text-white">
                 Pärnu
-              </p>
+              </span>
+            </span>
 
-              <h1 className="mt-2 text-3xl font-black tracking-[-0.035em] text-[#18392B] dark:text-white sm:text-4xl">
-                Food near you
-              </h1>
+            <ChevronDown
+              size={20}
+              className="shrink-0 text-black/55 dark:text-white/55"
+              aria-hidden="true"
+            />
+          </button>
+        </div>
 
-              <p className="mt-2 max-w-xl text-sm leading-6 text-black/55 dark:text-white/45 sm:text-base">
-                Rescue good food from local businesses before it goes to waste.
-              </p>
-            </div>
+        <div className="mx-auto w-full max-w-2xl">
+          <div className="flex gap-2 overflow-x-auto px-4 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {filters.map((filter) => {
+              const active =
+                category === filter.value;
 
-            <Link
-              href="/deals?view=map"
-              className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[#18392B] px-4 py-2.5 text-sm font-black text-white transition hover:bg-[#10271D]"
-            >
-              <MapIcon size={17} />
-              Map
-            </Link>
-          </div>
-
-          <div className="mt-6 grid grid-cols-2 rounded-full bg-[#F1EEE7] p-1 dark:bg-white/5">
-            <button
-              type="button"
-              onClick={() =>
-                setTab("offers")
-              }
-              className={[
-                "rounded-full px-5 py-2.5 text-sm font-black transition",
-                tab === "offers"
-                  ? "bg-[#18392B] text-white shadow-sm"
-                  : "text-black/45 hover:text-[#18392B] dark:text-white/40 dark:hover:text-white",
-              ].join(" ")}
-            >
-              Offers
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                setTab("businesses")
-              }
-              className={[
-                "rounded-full px-5 py-2.5 text-sm font-black transition",
-                tab === "businesses"
-                  ? "bg-[#18392B] text-white shadow-sm"
-                  : "text-black/45 hover:text-[#18392B] dark:text-white/40 dark:hover:text-white",
-              ].join(" ")}
-            >
-              Businesses
-            </button>
-          </div>
-
-          {tab === "offers" ? (
-            <div className="-mx-1 mt-5 flex gap-2 overflow-x-auto px-1 pb-1">
-              {filters.map((filter) => (
+              return (
                 <button
                   key={filter.value}
                   type="button"
@@ -184,180 +146,164 @@ export function DealsExplorer({
                     )
                   }
                   className={[
-                    "shrink-0 rounded-full border px-4 py-2 text-sm font-black transition",
-                    category ===
-                    filter.value
+                    "min-h-10 shrink-0 whitespace-nowrap rounded-full border px-4 text-sm font-black transition active:scale-[0.97]",
+                    active
                       ? "border-[#6A8A5E] bg-[#6A8A5E] text-white"
-                      : "border-black/10 bg-white text-black/55 hover:border-[#6A8A5E]/40 hover:text-[#18392B] dark:border-white/10 dark:bg-white/5 dark:text-white/45",
+                      : "border-black/10 bg-white text-black/55 hover:border-[#6A8A5E]/40 hover:text-[#18392B] dark:border-white/10 dark:bg-white/5 dark:text-white/50",
                   ].join(" ")}
+                  aria-pressed={active}
                 >
                   {filter.label}
                 </button>
-              ))}
-            </div>
-          ) : null}
-        </header>
+              );
+            })}
+          </div>
+        </div>
+      </header>
 
-        <section className="px-5 py-6 md:px-8 md:py-8">
-          {tab === "offers" ? (
-            <>
-              <div className="mb-5 flex items-end justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl font-black tracking-tight text-[#292621] dark:text-white">
-                    Available today
-                  </h2>
+      <div className="mx-auto w-full max-w-2xl px-4 py-5">
+        <div className="mb-4">
+          <h1 className="text-[1.4rem] font-black leading-tight tracking-[-0.035em] text-[#292621] dark:text-white">
+            Available today
+          </h1>
 
-                  <p className="mt-1 text-sm text-black/45 dark:text-white/40">
-                    {filteredDeals.length}{" "}
-                    {filteredDeals.length ===
-                    1
-                      ? "rescue offer"
-                      : "rescue offers"}
-                  </p>
-                </div>
-              </div>
+          <p className="mt-1 text-sm text-black/45 dark:text-white/40">
+            {filteredDeals.length}{" "}
+            {filteredDeals.length === 1
+              ? "rescue offer"
+              : "rescue offers"}
+          </p>
+        </div>
 
-              {filteredDeals.length ===
-              0 ? (
-                <EmptyState title="No offers match this filter" />
-              ) : (
-                <div className="grid gap-5 md:grid-cols-2">
-                  {filteredDeals.map(
-                    (deal) => (
-                      <DealCard
-                        key={deal.id}
-                        deal={deal}
-                      />
-                    ),
-                  )}
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <div className="mb-5">
-                <h2 className="text-2xl font-black tracking-tight text-[#292621] dark:text-white">
-                  Local businesses
-                </h2>
-
-                <p className="mt-1 text-sm text-black/45 dark:text-white/40">
-                  {businesses.length} places
-                  around Pärnu
-                </p>
-              </div>
-
-              {businesses.length === 0 ? (
-                <EmptyState title="No businesses are available" />
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2">
-                  {businesses.map(
-                    (business) => (
-                      <BusinessCard
-                        key={business.id}
-                        business={
-                          business
-                        }
-                      />
-                    ),
-                  )}
-                </div>
-              )}
-            </>
-          )}
-        </section>
-      </div>
-    </main>
-  );
-}
-
-function BusinessCard({
-  business,
-}: {
-  business: MapBusiness;
-}) {
-  const address = [
-    business.address,
-    business.city,
-  ]
-    .filter(Boolean)
-    .join(", ");
-
-  return (
-    <Link
-      href={`/stores/${business.id}`}
-      className="group flex min-h-[150px] items-center gap-4 rounded-[1.5rem] bg-[#FCFAF5] p-4 ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(95,78,55,0.10)] dark:bg-white/[0.03] dark:ring-white/10"
-    >
-      <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-full border border-black/10 bg-white text-xl font-black text-[#18392B] shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-white">
-        {business.logoUrl ? (
-          <img
-            src={business.logoUrl}
-            alt={`${business.name} logo`}
-            className="h-full w-full object-cover"
-          />
+        {filteredDeals.length === 0 ? (
+          <EmptyState />
         ) : (
-          getBusinessInitials(
-            business.name,
-          )
+          <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
+            {filteredDeals.map((deal) => (
+              <DealCard
+                key={deal.id}
+                deal={deal}
+              />
+            ))}
+          </div>
         )}
       </div>
 
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <h3 className="truncate text-xl font-black text-[#18392B] dark:text-white">
-            {business.name}
-          </h3>
+      {locationPickerOpen ? (
+        <div
+          className="fixed inset-0 z-[2147483500]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="location-picker-title"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/35 backdrop-blur-[2px]"
+            onClick={() =>
+              setLocationPickerOpen(false)
+            }
+            aria-label="Close location selector"
+          />
 
-          {business.verified ? (
-            <BadgeCheck
-              size={18}
-              className="shrink-0 text-[#6A8A5E]"
-            />
-          ) : null}
+          <div
+            className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-lg rounded-t-[2rem] bg-[#FBFAF6] px-4 pb-6 pt-4 shadow-[0_-20px_60px_rgba(0,0,0,0.2)] dark:bg-[#211D19]"
+            style={{
+              paddingBottom:
+                "max(24px, env(safe-area-inset-bottom))",
+            }}
+          >
+            <div className="mx-auto mb-4 h-1.5 w-11 rounded-full bg-black/15 dark:bg-white/20" />
+
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.15em] text-[#6A8A5E]">
+                  Discover nearby
+                </p>
+
+                <h2
+                  id="location-picker-title"
+                  className="mt-1 text-2xl font-black tracking-[-0.04em] text-[#292621] dark:text-white"
+                >
+                  Choose your location
+                </h2>
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setLocationPickerOpen(
+                    false,
+                  )
+                }
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-[#292621] ring-1 ring-black/[0.06] dark:bg-white/10 dark:text-white dark:ring-white/10"
+                aria-label="Close"
+              >
+                <X
+                  size={19}
+                  aria-hidden="true"
+                />
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                setLocationPickerOpen(false)
+              }
+              className="mt-6 flex w-full items-center gap-3 rounded-[1.25rem] bg-white p-4 text-left ring-1 ring-black/[0.07] dark:bg-white/[0.06] dark:ring-white/10"
+            >
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#E4F3DF] text-[#176862]">
+                <MapPin
+                  size={21}
+                  aria-hidden="true"
+                />
+              </span>
+
+              <span className="min-w-0 flex-1">
+                <span className="block text-base font-black text-[#292621] dark:text-white">
+                  Pärnu
+                </span>
+
+                <span className="mt-0.5 block text-sm text-black/45 dark:text-white/40">
+                  Current ClaimEat pilot area
+                </span>
+              </span>
+
+              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#6A8A5E] text-white">
+                <Check
+                  size={16}
+                  strokeWidth={3}
+                  aria-hidden="true"
+                />
+              </span>
+            </button>
+
+            <p className="mt-5 text-center text-sm leading-6 text-black/40 dark:text-white/35">
+              More cities will appear here as
+              ClaimEat expands.
+            </p>
+          </div>
         </div>
-
-        {address ? (
-          <p className="mt-2 flex gap-2 text-sm leading-5 text-black/50 dark:text-white/40">
-            <MapPin
-              size={15}
-              className="mt-0.5 shrink-0 text-[#176862]"
-            />
-
-            <span className="line-clamp-2">
-              {address}
-            </span>
-          </p>
-        ) : null}
-
-        <p className="mt-3 line-clamp-1 text-sm text-black/45 dark:text-white/35">
-          {business.description ||
-            "Local food business in the Pärnu area."}
-        </p>
-      </div>
-
-      <ChevronRight
-        size={22}
-        className="shrink-0 text-[#176862] transition group-hover:translate-x-1"
-      />
-    </Link>
+      ) : null}
+    </section>
   );
 }
 
-function EmptyState({
-  title,
-}: {
-  title: string;
-}) {
+function EmptyState() {
   return (
-    <div className="rounded-[1.5rem] bg-[#F4EFE6] px-6 py-8 text-center dark:bg-white/5">
-      <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[#E4EAD7] text-[#18392B]">
-        <Store size={22} />
+    <div className="flex min-h-[320px] flex-col items-center justify-center rounded-[1.5rem] bg-white px-6 py-10 text-center ring-1 ring-black/5 dark:bg-white/[0.04] dark:ring-white/10">
+      <div className="grid h-14 w-14 place-items-center rounded-full bg-[#E4EAD7] text-[#18392B]">
+        <Store
+          size={24}
+          aria-hidden="true"
+        />
       </div>
 
-      <p className="mt-4 text-xl font-black text-[#18392B] dark:text-white">
-        {title}
-      </p>
+      <h2 className="mt-5 text-xl font-black tracking-tight text-[#18392B] dark:text-white">
+        No offers match this filter
+      </h2>
 
-      <p className="mt-2 text-sm leading-6 text-black/50 dark:text-white/40">
+      <p className="mt-2 max-w-xs text-sm leading-6 text-black/50 dark:text-white/40">
         Try another category or check back later.
       </p>
     </div>
