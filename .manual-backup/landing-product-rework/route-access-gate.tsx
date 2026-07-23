@@ -21,13 +21,6 @@ const PUBLIC_PATHS = new Set([
   "/offline",
   "/forgot-password",
   "/reset-password",
-  "/how-it-works",
-  "/for-businesses",
-  "/about",
-  "/contact",
-  "/privacy",
-  "/terms",
-  "/refunds",
 ]);
 
 function isPublicPath(pathname: string) {

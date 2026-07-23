@@ -1130,26 +1130,3 @@ a {
   overflow-wrap: anywhere;
   word-break: break-word;
 }
-
-/* MY CLAIMS WIDE SHELL START */
-
-.claim-app-shell--wide {
-  width: 100%;
-  max-width: none !important;
-  overflow-x: clip;
-  box-shadow: none !important;
-}
-
-.claim-app-content--wide {
-  width: 100%;
-  max-width: none !important;
-  overflow-x: clip;
-}
-
-@media (min-width: 769px) {
-  .claim-app-shell--wide {
-    background: var(--claim-app-background, #f5f2eb);
-  }
-}
-
-/* MY CLAIMS WIDE SHELL END */

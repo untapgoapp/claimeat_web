@@ -9,9 +9,5 @@ type MyClaimsLayoutProps = {
 export default function MyClaimsLayout({
   children,
 }: MyClaimsLayoutProps) {
-  return (
-    <AppShell wide>
-      {children}
-    </AppShell>
-  );
+  return <AppShell>{children}</AppShell>;
 }

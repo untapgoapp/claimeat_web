@@ -2,539 +2,1075 @@
 
 import Link from "next/link";
 import {
+  CheckCircle2,
   Clock3,
   ExternalLink,
   PackageCheck,
   QrCode,
   RefreshCw,
+  ShoppingBag,
   TicketCheck,
   TimerOff,
+  X,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { ClaimQr } from "@/components/claim-qr";
 import {
   useEffect,
   useMemo,
   useState,
-  type KeyboardEvent,
-  type MouseEvent,
 } from "react";
 
 import { useAuth } from "@/components/auth/auth-provider";
+import { ClaimQr } from "@/components/claim-qr";
 import {
-  EmptyState,
-  InfoTile,
-  MetricCard,
-  StatusPill,
-} from "@/components/ui";
-import { fetchMyClaims, type MyClaim } from "@/lib/api/my-claims";
+  fetchMyClaims,
+  type MyClaim,
+} from "@/lib/api/my-claims";
 import { formatMoney } from "@/lib/utils/format";
 
-type ClaimFilter = "active" | "collected" | "expired" | "all";
-type ClaimState = "active" | "collected" | "expired";
+type ClaimFilter =
+  | "active"
+  | "collected"
+  | "expired"
+  | "all";
 
-const filters: { value: ClaimFilter; label: string }[] = [
-  { value: "active", label: "Active" },
-  { value: "collected", label: "Collected" },
-  { value: "expired", label: "Expired" },
-  { value: "all", label: "All" },
+type ClaimState =
+  | "active"
+  | "collected"
+  | "expired";
+
+const filters: {
+  value: ClaimFilter;
+  label: string;
+}[] = [
+  {
+    value: "active",
+    label: "Active",
+  },
+  {
+    value: "collected",
+    label: "Collected",
+  },
+  {
+    value: "expired",
+    label: "Expired",
+  },
+  {
+    value: "all",
+    label: "All",
+  },
 ];
 
-function getPickupCode(claim: MyClaim) {
-  return claim.pickup_code || claim.code || claim.qr_code || "";
+function getPickupCode(
+  claim: MyClaim,
+) {
+  return (
+    claim.pickup_code ||
+    claim.code ||
+    claim.qr_code ||
+    ""
+  );
 }
 
-function isCollected(claim: MyClaim) {
+function isCollected(
+  claim: MyClaim,
+) {
   return (
     claim.claim_status === "picked_up" ||
     claim.claim_status === "collected" ||
-    Boolean(claim.picked_up_at || claim.collected_at)
+    Boolean(
+      claim.picked_up_at ||
+        claim.collected_at,
+    )
   );
 }
 
 function isExpired(claim: MyClaim) {
-  if (isCollected(claim)) return false;
-  if (claim.claim_status === "expired") return true;
-  if (!claim.pickup_end) return false;
+  if (isCollected(claim)) {
+    return false;
+  }
 
-  const pickupEnd = new Date(claim.pickup_end);
+  if (
+    claim.claim_status === "expired"
+  ) {
+    return true;
+  }
 
-  if (Number.isNaN(pickupEnd.getTime())) return false;
+  if (!claim.pickup_end) {
+    return false;
+  }
 
-  return pickupEnd.getTime() < Date.now();
+  const pickupEnd = new Date(
+    claim.pickup_end,
+  );
+
+  if (
+    Number.isNaN(
+      pickupEnd.getTime(),
+    )
+  ) {
+    return false;
+  }
+
+  return (
+    pickupEnd.getTime() < Date.now()
+  );
 }
 
-function getClaimState(claim: MyClaim): ClaimState {
-  if (isCollected(claim)) return "collected";
-  if (isExpired(claim)) return "expired";
+function getClaimState(
+  claim: MyClaim,
+): ClaimState {
+  if (isCollected(claim)) {
+    return "collected";
+  }
+
+  if (isExpired(claim)) {
+    return "expired";
+  }
+
   return "active";
 }
 
-function formatTime(value: string | null) {
-  if (!value) return "TBD";
+function formatTime(
+  value: string | null,
+) {
+  if (!value) {
+    return "TBD";
+  }
 
   const date = new Date(value);
 
-  if (Number.isNaN(date.getTime())) return "TBD";
+  if (
+    Number.isNaN(date.getTime())
+  ) {
+    return "TBD";
+  }
 
-  return new Intl.DateTimeFormat("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
+  return new Intl.DateTimeFormat(
+    "en-GB",
+    {
+      hour: "2-digit",
+      minute: "2-digit",
+    },
+  ).format(date);
 }
 
-function formatDateTime(value: string | null) {
-  if (!value) return "Not yet";
+function formatDate(
+  value: string | null,
+) {
+  if (!value) {
+    return "Date TBD";
+  }
 
   const date = new Date(value);
 
-  if (Number.isNaN(date.getTime())) return "Not yet";
+  if (
+    Number.isNaN(date.getTime())
+  ) {
+    return "Date TBD";
+  }
 
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
+  return new Intl.DateTimeFormat(
+    "en-GB",
+    {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    },
+  ).format(date);
 }
 
-function formatPickupWindow(claim: MyClaim) {
-  if (!claim.pickup_start || !claim.pickup_end) return "Pickup TBD";
+function formatDateTime(
+  value: string | null,
+) {
+  if (!value) {
+    return "Not recorded";
+  }
 
-  return `${formatTime(claim.pickup_start)} - ${formatTime(claim.pickup_end)}`;
+  const date = new Date(value);
+
+  if (
+    Number.isNaN(date.getTime())
+  ) {
+    return "Not recorded";
+  }
+
+  return new Intl.DateTimeFormat(
+    "en-GB",
+    {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    },
+  ).format(date);
 }
 
-function getStatusTone(state: ClaimState) {
-  if (state === "collected") return "good" as const;
-  if (state === "expired") return "danger" as const;
-  return "good" as const;
+function formatPickupWindow(
+  claim: MyClaim,
+) {
+  if (
+    !claim.pickup_start ||
+    !claim.pickup_end
+  ) {
+    return "Pickup time TBD";
+  }
+
+  return `${formatTime(
+    claim.pickup_start,
+  )}–${formatTime(claim.pickup_end)}`;
 }
 
-function getStatusIcon(state: ClaimState) {
-  if (state === "collected") return <TicketCheck size={13} />;
-  if (state === "expired") return <TimerOff size={13} />;
-  return <Clock3 size={13} />;
+function formatCodeForDisplay(
+  value: string,
+) {
+  const normalized = value
+    .replace(/\s+/g, "")
+    .replace(/-/g, "")
+    .toUpperCase();
+
+  return (
+    normalized
+      .match(/.{1,4}/g)
+      ?.join("-") || value
+  );
 }
 
 export function MyClaimsWallet() {
-  const router = useRouter();
-  const { user, loading } = useAuth();
+  const {
+    user,
+    loading: authLoading,
+  } = useAuth();
 
-  const [claims, setClaims] = useState<MyClaim[]>([]);
-  const [filter, setFilter] = useState<ClaimFilter>("active");
-  const [selectedClaimId, setSelectedClaimId] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [claims, setClaims] =
+    useState<MyClaim[]>([]);
 
-  const selectedClaim =
-    claims.find((claim) => claim.id === selectedClaimId) || claims[0] || null;
+  const [filter, setFilter] =
+    useState<ClaimFilter>("active");
+
+  const [
+    selectedClaimId,
+    setSelectedClaimId,
+  ] = useState<string | null>(null);
+
+  const [ticketOpen, setTicketOpen] =
+    useState(false);
+
+  const [busy, setBusy] =
+    useState(false);
+
+  const [message, setMessage] =
+    useState<string | null>(null);
+
+  const selectedClaim = useMemo(
+    () =>
+      claims.find(
+        (claim) =>
+          claim.id === selectedClaimId,
+      ) || null,
+    [claims, selectedClaimId],
+  );
 
   const visibleClaims = useMemo(() => {
-    if (filter === "all") return claims;
+    if (filter === "all") {
+      return claims;
+    }
 
-    return claims.filter((claim) => getClaimState(claim) === filter);
+    return claims.filter(
+      (claim) =>
+        getClaimState(claim) === filter,
+    );
   }, [claims, filter]);
 
-  const stats = useMemo(() => {
-    return {
-      active: claims.filter((claim) => getClaimState(claim) === "active").length,
-      collected: claims.filter((claim) => getClaimState(claim) === "collected").length,
-      expired: claims.filter((claim) => getClaimState(claim) === "expired").length,
-      total: claims.length,
-    };
-  }, [claims]);
+  const stats = useMemo(
+    () => ({
+      active: claims.filter(
+        (claim) =>
+          getClaimState(claim) ===
+          "active",
+      ).length,
 
-  function openDealPage(dealId: string) {
-    router.push(`/deals/${dealId}`);
-  }
+      collected: claims.filter(
+        (claim) =>
+          getClaimState(claim) ===
+          "collected",
+      ).length,
+
+      expired: claims.filter(
+        (claim) =>
+          getClaimState(claim) ===
+          "expired",
+      ).length,
+
+      total: claims.length,
+    }),
+    [claims],
+  );
 
   async function loadClaims() {
-    if (!user) return;
+    if (!user) {
+      return;
+    }
 
     setBusy(true);
     setMessage(null);
 
     try {
-      const nextClaims = await fetchMyClaims();
+      const nextClaims =
+        await fetchMyClaims();
+
       setClaims(nextClaims);
 
-      if (!selectedClaimId && nextClaims[0]) {
-        setSelectedClaimId(nextClaims[0].id);
-      }
+      setSelectedClaimId(
+        (currentId) => {
+          const currentStillExists =
+            nextClaims.some(
+              (claim) =>
+                claim.id === currentId,
+            );
+
+          if (currentStillExists) {
+            return currentId;
+          }
+
+          const firstActive =
+            nextClaims.find(
+              (claim) =>
+                getClaimState(claim) ===
+                "active",
+            );
+
+          return (
+            firstActive?.id ||
+            nextClaims[0]?.id ||
+            null
+          );
+        },
+      );
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not load claims.");
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not load your orders.",
+      );
     } finally {
       setBusy(false);
     }
   }
 
   useEffect(() => {
-    if (!loading && user) {
+    if (!authLoading && user) {
       void loadClaims();
     }
-  }, [loading, user]);
+  }, [authLoading, user]);
 
-  if (loading) {
-    return (
-      <div className="rounded-[1.75rem] bg-white p-8 text-center shadow-[0_10px_30px_rgba(95,78,55,0.08)] ring-1 ring-[#DDD2C2] dark:bg-[#241f1a] dark:ring-white/10">
-        <p className="font-black">Loading your wallet...</p>
-      </div>
-    );
+  function showTicket(
+    claimId: string,
+  ) {
+    setSelectedClaimId(claimId);
+    setTicketOpen(true);
+  }
+
+  if (authLoading) {
+    return <WalletLoading />;
   }
 
   if (!user) {
     return (
-      <div className="mx-auto max-w-xl rounded-[1.75rem] bg-white p-8 text-center shadow-[0_10px_30px_rgba(95,78,55,0.08)] ring-1 ring-[#DDD2C2] dark:bg-[#241f1a] dark:ring-white/10">
-        <p className="text-3xl font-black tracking-tight">
-          Log in to see your claims
-        </p>
+      <main className="grid min-h-[70dvh] place-items-center px-4 py-10">
+        <section className="w-full max-w-sm rounded-[1.6rem] border border-black/[0.07] bg-white p-6 text-center">
+          <QrCode
+            size={30}
+            className="mx-auto text-[#6F7D43]"
+            aria-hidden="true"
+          />
 
-        <p className="mt-3 text-black/55 dark:text-white/45">
-          Your pickup codes and QR tickets live here after checkout.
-        </p>
+          <h1 className="mt-4 text-2xl font-black tracking-[-0.04em]">
+            Log in to see your orders
+          </h1>
 
-        <Link
-          href="?auth=login"
-          className="mt-6 inline-flex rounded-full bg-[#6F7D43] px-6 py-3 font-black text-white dark:bg-[#9baa6a] dark:text-[#2F261F]"
-        >
-          Log in
-        </Link>
-      </div>
+          <p className="mt-3 text-sm leading-6 text-black/45">
+            Your pickup tickets will appear
+            here after checkout.
+          </p>
+
+          <Link
+            href="/login?next=/my-claims"
+            className="mt-6 flex min-h-12 w-full items-center justify-center rounded-xl bg-[#18392B] text-sm font-black text-white"
+          >
+            Log in
+          </Link>
+        </section>
+      </main>
     );
   }
 
   return (
-    <div className="space-y-7 pb-16">
-      <section className="relative overflow-hidden rounded-[2.25rem] bg-[#6F7D43] p-6 text-white shadow-[0_24px_70px_rgba(95,78,55,0.14)] md:p-8">
-        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#9baa6a]/30 blur-3xl" />
-        <div className="absolute bottom-0 left-1/2 h-32 w-72 rounded-full bg-[#b76e45]/20 blur-3xl" />
-
-        <div className="relative z-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-          <div>
-            <p className="inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-wide text-[#dfe8b6]">
+    <main
+      className="mx-auto w-full max-w-[1120px] px-3 pt-4 sm:px-5 lg:px-6"
+      style={{
+        paddingBottom:
+          "calc(118px + env(safe-area-inset-bottom))",
+      }}
+    >
+      <header className="rounded-[1.6rem] bg-[#18392B] p-5 text-white sm:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-white/50">
               ClaimEat wallet
             </p>
 
-            <h1 className="mt-4 text-4xl font-black tracking-tight md:text-6xl">
-              Your pickup codes
+            <h1 className="mt-2 text-[2rem] font-black leading-none tracking-[-0.05em] sm:text-4xl">
+              My orders
             </h1>
 
-            <p className="mt-3 max-w-2xl text-white/62">
-              Show the QR or code at the store during the pickup window.
+            <p className="mt-2 max-w-lg text-sm leading-5 text-white/55">
+              Open a ticket when you arrive
+              at the store.
             </p>
           </div>
 
           <button
             type="button"
-            onClick={() => loadClaims()}
+            onClick={() =>
+              void loadClaims()
+            }
             disabled={busy}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-5 py-3 font-black text-[#2F261F] shadow-[0_10px_30px_rgba(95,78,55,0.08)] transition hover:bg-[#F4EFE6] disabled:opacity-60"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/10 text-white disabled:opacity-40"
+            aria-label="Refresh orders"
           >
-            <RefreshCw size={18} />
-            Refresh
+            <RefreshCw
+              size={19}
+              className={
+                busy ? "animate-spin" : ""
+              }
+              aria-hidden="true"
+            />
           </button>
         </div>
 
-        <div className="relative z-10 mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard label="Active" value={String(stats.active)} dark />
-          <MetricCard label="Collected" value={String(stats.collected)} dark />
-          <MetricCard label="Expired" value={String(stats.expired)} dark />
-          <MetricCard label="Total" value={String(stats.total)} dark />
+        <div className="mt-5 grid grid-cols-4 gap-2">
+          <Metric
+            label="Active"
+            value={stats.active}
+          />
+
+          <Metric
+            label="Collected"
+            value={stats.collected}
+          />
+
+          <Metric
+            label="Expired"
+            value={stats.expired}
+          />
+
+          <Metric
+            label="Total"
+            value={stats.total}
+          />
         </div>
-      </section>
+      </header>
 
       {message ? (
-        <div className="rounded-[1.5rem] bg-[#fff0ea] p-4 text-[#8a3a20]">
-          <p className="font-semibold">{message}</p>
+        <div className="mt-4 rounded-xl bg-[#FFF0EA] p-4 text-sm font-semibold text-[#8A3A20]">
+          {message}
         </div>
       ) : null}
 
-      {claims.length === 0 ? (
-        <EmptyState
-          icon={<PackageCheck size={28} />}
-          title="No claims yet"
-          text="Claim your first rescue bag and your pickup code will appear here."
-          action={
-            <Link
-              href="/deals"
-              className="inline-flex rounded-full bg-[#6F7D43] px-6 py-3 font-black text-white dark:bg-[#9baa6a] dark:text-[#2F261F]"
-            >
-              Browse deals
-            </Link>
-          }
-        />
+      {claims.length === 0 &&
+      !busy ? (
+        <section className="mt-5 rounded-[1.6rem] border border-black/[0.07] bg-white px-5 py-12 text-center">
+          <PackageCheck
+            size={31}
+            className="mx-auto text-[#6F7D43]"
+            aria-hidden="true"
+          />
+
+          <h2 className="mt-4 text-xl font-black">
+            No orders yet
+          </h2>
+
+          <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-black/45">
+            Claim your first rescue deal
+            and its pickup ticket will
+            appear here.
+          </p>
+
+          <Link
+            href="/deals"
+            className="mx-auto mt-6 flex min-h-12 w-full max-w-xs items-center justify-center rounded-xl bg-[#18392B] text-sm font-black text-white"
+          >
+            Browse deals
+          </Link>
+        </section>
       ) : (
-        <section className="grid gap-5 lg:grid-cols-[420px_1fr]">
-          <div className="space-y-5">
-            <div className="rounded-[1.75rem] bg-white p-5 shadow-[0_10px_30px_rgba(95,78,55,0.08)] ring-1 ring-[#DDD2C2] dark:bg-[#241f1a] dark:ring-white/10 md:p-6">
-              <div className="flex items-start gap-4">
-                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#EEF1E3] text-[#6F7D43] dark:bg-[#556235] dark:text-[#E1E9B8]">
-                  <QrCode size={24} />
-                </div>
+        <>
+          <section className="mt-5 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.1em] text-[#6F7D43]">
+                Pickup history
+              </p>
 
-                <div>
-                  <h2 className="text-2xl font-black tracking-tight">
-                    Pickup ticket
-                  </h2>
-
-                  <p className="mt-1 text-sm leading-6 text-black/55 dark:text-white/45">
-                    Show this at the counter if the order is still active.
-                  </p>
-                </div>
-              </div>
-
-              {selectedClaim ? (
-                <BigQrTicket
-                  claim={selectedClaim}
-                  onOpenDeal={() => openDealPage(selectedClaim.deal_id)}
-                />
-              ) : null}
+              <h2 className="mt-1 text-2xl font-black tracking-[-0.04em]">
+                Your orders
+              </h2>
             </div>
+
+            <span className="shrink-0 text-xs font-bold text-black/35">
+              {visibleClaims.length} shown
+            </span>
+          </section>
+
+          <div className="-mx-3 mt-3 flex gap-2 overflow-x-auto px-3 pb-1 [scrollbar-width:none] sm:-mx-5 sm:px-5 lg:-mx-6 lg:px-6 [&::-webkit-scrollbar]:hidden">
+            {filters.map((item) => {
+              const active =
+                filter === item.value;
+
+              return (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() =>
+                    setFilter(item.value)
+                  }
+                  className={[
+                    "min-h-9 shrink-0 rounded-full px-4 text-xs font-black",
+                    active
+                      ? "bg-[#18392B] text-white"
+                      : "border border-black/[0.07] bg-white text-black/50",
+                  ].join(" ")}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
           </div>
 
-          <div className="rounded-[1.75rem] bg-white p-5 shadow-[0_10px_30px_rgba(95,78,55,0.08)] ring-1 ring-[#DDD2C2] dark:bg-[#241f1a] dark:ring-white/10 md:p-6">
-            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-              <div>
-                <p className="text-sm font-black uppercase tracking-wide text-[#6F7D43] dark:text-[#E1E9B8]">
-                  Claims
-                </p>
+          {busy &&
+          claims.length === 0 ? (
+            <ClaimsGridLoading />
+          ) : visibleClaims.length === 0 ? (
+            <section className="mt-4 rounded-[1.5rem] border border-black/[0.07] bg-white px-5 py-10 text-center">
+              <p className="font-black">
+                Nothing here
+              </p>
 
-                <h2 className="mt-1 text-3xl font-black tracking-tight">
-                  Your orders
-                </h2>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {filters.map((item) => (
-                  <button
-                    key={item.value}
-                    type="button"
-                    onClick={() => setFilter(item.value)}
-                    className={[
-                      "rounded-full px-4 py-2 text-sm font-black transition",
-                      filter === item.value
-                        ? "bg-[#6F7D43] text-white dark:bg-[#9baa6a] dark:text-[#2F261F]"
-                        : "bg-[#F4EFE6] text-black/50 hover:text-black dark:bg-[#171411] dark:text-white/45 dark:hover:text-white",
-                    ].join(" ")}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-6 space-y-3">
-              {visibleClaims.length === 0 ? (
-                <EmptyState title="Nothing here" text="Try another filter." />
-              ) : (
-                visibleClaims.map((claim) => (
-                  <ClaimWalletCard
+              <p className="mt-2 text-sm text-black/45">
+                Try another filter.
+              </p>
+            </section>
+          ) : (
+            <section className="mt-4 grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {visibleClaims.map(
+                (claim) => (
+                  <ClaimCard
                     key={claim.id}
                     claim={claim}
-                    selected={selectedClaim?.id === claim.id}
-                    onShowTicket={() => setSelectedClaimId(claim.id)}
-                    onOpenDeal={() => openDealPage(claim.deal_id)}
+                    onShowTicket={() =>
+                      showTicket(claim.id)
+                    }
                   />
-                ))
+                ),
               )}
-            </div>
-          </div>
-        </section>
+            </section>
+          )}
+        </>
       )}
+
+      {ticketOpen &&
+      selectedClaim ? (
+        <ClaimTicketModal
+          claim={selectedClaim}
+          onClose={() =>
+            setTicketOpen(false)
+          }
+        />
+      ) : null}
+    </main>
+  );
+}
+
+function Metric({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="min-w-0 rounded-xl bg-white/10 px-2 py-3 text-center">
+      <p className="truncate text-[8px] font-black uppercase tracking-[0.05em] text-white/45 sm:text-[10px]">
+        {label}
+      </p>
+
+      <p className="mt-1 text-lg font-black sm:text-xl">
+        {value}
+      </p>
     </div>
   );
 }
 
-function BigQrTicket({
+function ClaimCard({
   claim,
-  onOpenDeal,
+  onShowTicket,
 }: {
   claim: MyClaim;
-  onOpenDeal: () => void;
+  onShowTicket: () => void;
 }) {
-  const code = getPickupCode(claim);
   const state = getClaimState(claim);
 
+  const code =
+    getPickupCode(claim);
+
+  const location =
+    claim.business_address ||
+    claim.business_city ||
+    "Location unavailable";
+
   return (
-    <div className="mt-6">
-      <div
-        className={[
-          "rounded-[1.75rem] p-5 text-center dark:bg-[#171411]",
-          state === "expired" ? "bg-[#fff0ea]" : "bg-[#F4EFE6]",
-        ].join(" ")}
-      >
-        <div className="mx-auto grid aspect-square w-full max-w-[260px] place-items-center rounded-[1.75rem] bg-white p-3 shadow-[0_10px_30px_rgba(95,78,55,0.08)]">
-          {state === "expired" ? (
-            <div className="text-center text-[#8a3a20]">
-              <TimerOff className="mx-auto" size={72} />
-              <p className="mt-3 text-sm font-black">Expired</p>
-            </div>
-          ) : code ? (
-            <ClaimQr value={code} />
-          ) : (
-            <p className="text-sm font-black text-black/40">Missing code</p>
-          )}
+    <article className="min-w-0 overflow-hidden rounded-[1.45rem] border border-black/[0.07] bg-white">
+      <div className="p-4">
+        <div className="flex min-w-0 items-start justify-between gap-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <ClaimStatus state={state} />
+
+            <span className="rounded-full bg-black/[0.05] px-2.5 py-1 text-[9px] font-black uppercase text-black/40">
+              {claim.payment_status}
+            </span>
+          </div>
+
+          <div className="min-w-0 shrink-0 text-right">
+            <p className="text-[8px] font-black uppercase tracking-[0.08em] text-black/30">
+              Code
+            </p>
+
+            <p className="mt-1 max-w-[110px] break-all font-mono text-xs font-black tracking-[0.08em] text-[#6F7D43] [overflow-wrap:anywhere]">
+              {code || "—"}
+            </p>
+          </div>
         </div>
 
-        <p className="mt-5 text-xs font-black uppercase tracking-[0.22em] text-black/35 dark:text-white/30">
-          {state === "expired" ? "Expired code" : "Pickup code"}
+        <h3 className="mt-4 line-clamp-2 text-lg font-black leading-5 tracking-[-0.025em]">
+          {claim.deal_title}
+        </h3>
+
+        <p className="mt-1.5 truncate text-sm font-semibold text-black/50">
+          {claim.business_name}
         </p>
 
-        <p className="mx-auto mt-2 max-w-full break-all font-mono text-[clamp(1.35rem,7vw,2rem)] font-black leading-tight tracking-[0.08em] text-[#2F261F] [overflow-wrap:anywhere] dark:text-white">
-          {code || "—"}
+        <p className="mt-1 line-clamp-2 text-xs leading-5 text-black/40">
+          {location}
         </p>
 
-        {state === "expired" ? (
-          <p className="mt-3 text-sm font-bold text-[#8a3a20]">
-            This pickup window has passed.
+        <div className="mt-4 rounded-xl bg-[#F3F0E8] p-3">
+          <p className="flex items-center gap-2 text-xs font-semibold text-black/55">
+            <Clock3
+              size={14}
+              className="shrink-0 text-[#6F7D43]"
+              aria-hidden="true"
+            />
+
+            {formatDate(
+              claim.pickup_start,
+            )}{" "}
+            · {formatPickupWindow(claim)}
           </p>
-        ) : null}
-      </div>
+        </div>
 
-      <div className="mt-5">
-        <div className="flex items-start justify-between gap-4">
+        <div className="mt-4 flex items-end justify-between gap-3">
           <div>
-            <h3 className="text-2xl font-black tracking-tight">
-              {claim.deal_title}
-            </h3>
+            <p className="text-[9px] font-black uppercase tracking-[0.08em] text-black/30">
+              Total
+            </p>
 
-            <p className="mt-1 text-sm text-black/50 dark:text-white/40">
-              {claim.business_name} · {claim.business_address || claim.business_city}
+            <p className="mt-1 text-lg font-black text-[#18392B]">
+              {formatMoney(
+                claim.total_price,
+              )}
             </p>
           </div>
 
-          <ClaimStatusPill state={state} />
+          <p className="text-xs font-semibold text-black/40">
+            Qty {claim.quantity}
+          </p>
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 border-t border-black/[0.07] p-3">
+        <Link
+          href={`/deals/${claim.deal_id}`}
+          className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-black/[0.05] px-3 text-xs font-black text-black/55"
+        >
+          Deal
+          <ExternalLink
+            size={14}
+            aria-hidden="true"
+          />
+        </Link>
 
         <button
           type="button"
-          onClick={onOpenDeal}
-          className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#6F7D43] px-4 py-2 text-sm font-black text-white transition hover:bg-[#556235] dark:bg-[#9baa6a] dark:text-[#2F261F]"
+          onClick={onShowTicket}
+          className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#18392B] px-3 text-xs font-black text-white"
         >
-          View deal
-          <ExternalLink size={15} />
-        </button>
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <InfoTile label="Pickup" value={formatPickupWindow(claim)} />
-          <InfoTile label="Total" value={formatMoney(claim.total_price)} />
-          <InfoTile label="Quantity" value={String(claim.quantity)} />
-          <InfoTile
-            label="Status"
-            value={
-              state === "collected"
-                ? formatDateTime(claim.picked_up_at || claim.collected_at)
-                : state
-            }
+          <QrCode
+            size={15}
+            aria-hidden="true"
           />
-        </div>
+
+          {state === "active"
+            ? "Show ticket"
+            : "View receipt"}
+        </button>
       </div>
-    </div>
+    </article>
   );
 }
 
-function ClaimWalletCard({
+function ClaimTicketModal({
   claim,
-  selected,
-  onShowTicket,
-  onOpenDeal,
+  onClose,
 }: {
   claim: MyClaim;
-  selected: boolean;
-  onShowTicket: () => void;
-  onOpenDeal: () => void;
+  onClose: () => void;
 }) {
-  const code = getPickupCode(claim);
   const state = getClaimState(claim);
 
-  function handleCardClick(event: MouseEvent<HTMLDivElement>) {
-    const target = event.target as HTMLElement | null;
+  const code =
+    getPickupCode(claim);
 
-    if (
-      target?.closest("button") ||
-      target?.closest("a") ||
-      target?.closest("input") ||
-      target?.closest("select") ||
-      target?.closest("textarea")
-    ) {
-      return;
-    }
+  const displayCode =
+    formatCodeForDisplay(code);
 
-    onOpenDeal();
-  }
+  const location =
+    claim.business_address ||
+    claim.business_city ||
+    "Location unavailable";
 
-  function handleCardKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key !== "Enter" && event.key !== " ") return;
+  useEffect(() => {
+    const previousOverflow =
+      document.body.style.overflow;
 
-    event.preventDefault();
-    onOpenDeal();
-  }
+    document.body.style.overflow =
+      "hidden";
+
+    return () => {
+      document.body.style.overflow =
+        previousOverflow;
+    };
+  }, []);
 
   return (
     <div
-      role="button"
-      tabIndex={0}
-      onClick={handleCardClick}
-      onKeyDown={handleCardKeyDown}
-      title="Open deal"
-      className={[
-        "w-full cursor-pointer rounded-[1.5rem] border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#9baa6a]",
-        selected
-          ? "border-[#6f7d43] bg-[#EEF1E3] dark:border-[#9baa6a] dark:bg-[#556235]"
-          : "border-[#DDD2C2] bg-[#FBF8F2] dark:border-white/10 dark:bg-[#171411]",
-      ].join(" ")}
+      className="fixed inset-0 z-[2147483550] overflow-y-auto bg-[#F5F2EB] sm:bg-black/45 sm:p-5"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Pickup ticket"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <ClaimStatusPill state={state} />
+      <div className="mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col bg-[#F5F2EB] sm:min-h-0 sm:rounded-[1.8rem] sm:shadow-[0_25px_80px_rgba(0,0,0,0.28)]">
+        <header
+          className="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-black/[0.07] bg-[#F5F2EB]/95 px-4 py-3 backdrop-blur"
+          style={{
+            paddingTop:
+              "max(12px, env(safe-area-inset-top))",
+          }}
+        >
+          <div>
+            <p className="text-[9px] font-black uppercase tracking-[0.1em] text-[#6F7D43]">
+              ClaimEat ticket
+            </p>
 
-            <StatusPill>{claim.payment_status}</StatusPill>
-
-            <StatusPill>
-              Open deal
-              <ExternalLink size={12} />
-            </StatusPill>
+            <h1 className="mt-1 text-xl font-black tracking-[-0.035em]">
+              {state === "active"
+                ? "Pickup ticket"
+                : "Order receipt"}
+            </h1>
           </div>
-
-          <h3 className="mt-3 truncate text-xl font-black tracking-tight">
-            {claim.deal_title}
-          </h3>
-
-          <p className="mt-1 truncate text-sm text-black/50 dark:text-white/40">
-            {claim.business_name} · {formatPickupWindow(claim)}
-          </p>
 
           <button
             type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onShowTicket();
-            }}
-            className="mt-3 rounded-full bg-[#6F7D43] px-4 py-2 text-xs font-black text-white transition hover:bg-[#556235] dark:bg-[#9baa6a] dark:text-[#2F261F]"
+            onClick={onClose}
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-black/[0.06]"
+            aria-label="Close ticket"
           >
-            Show ticket
+            <X
+              size={19}
+              aria-hidden="true"
+            />
           </button>
-        </div>
+        </header>
 
-        <div className="shrink-0 text-right">
-          <p className="text-xs font-black uppercase tracking-wide text-black/35 dark:text-white/30">
-            Code
-          </p>
+        <div
+          className="flex-1 px-4 py-5"
+          style={{
+            paddingBottom:
+              "max(24px, env(safe-area-inset-bottom))",
+          }}
+        >
+          <section className="overflow-hidden rounded-[1.6rem] border border-black/[0.07] bg-white">
+            <div className="p-5">
+              <div className="flex items-start gap-3">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#E9EDDD] text-[#18392B]">
+                  <ShoppingBag
+                    size={21}
+                    aria-hidden="true"
+                  />
+                </span>
 
-          <p className="mt-1 font-black tracking-[0.12em] text-[#6F7D43] dark:text-[#E1E9B8]">
-            {code || "—"}
-          </p>
+                <div className="min-w-0 flex-1">
+                  <h2 className="line-clamp-2 text-lg font-black leading-5">
+                    {claim.deal_title}
+                  </h2>
+
+                  <p className="mt-1 truncate text-sm text-black/45">
+                    {claim.business_name}
+                  </p>
+                </div>
+
+                <ClaimStatus
+                  state={state}
+                />
+              </div>
+
+              <div
+                className={[
+                  "mt-5 rounded-[1.5rem] p-4 text-center",
+                  state === "expired"
+                    ? "bg-[#FFF0EA]"
+                    : "bg-[#F3F0E8]",
+                ].join(" ")}
+              >
+                {state === "active" &&
+                code ? (
+                  <ClaimQr
+                    value={code}
+                  />
+                ) : state ===
+                  "collected" ? (
+                  <div className="mx-auto grid aspect-square w-full max-w-[240px] place-items-center rounded-[1.5rem] bg-[#E9EDDD] text-[#36562B]">
+                    <div>
+                      <CheckCircle2
+                        size={58}
+                        className="mx-auto"
+                        aria-hidden="true"
+                      />
+
+                      <p className="mt-3 font-black">
+                        Collected
+                      </p>
+                    </div>
+                  </div>
+                ) : state ===
+                  "expired" ? (
+                  <div className="mx-auto grid aspect-square w-full max-w-[240px] place-items-center rounded-[1.5rem] bg-white text-[#8A3A20]">
+                    <div>
+                      <TimerOff
+                        size={58}
+                        className="mx-auto"
+                        aria-hidden="true"
+                      />
+
+                      <p className="mt-3 font-black">
+                        Pickup expired
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mx-auto grid aspect-square w-full max-w-[240px] place-items-center rounded-[1.5rem] bg-white text-black/35">
+                    QR unavailable
+                  </div>
+                )}
+
+                <p className="mt-5 text-[9px] font-black uppercase tracking-[0.12em] text-black/35">
+                  Pickup code
+                </p>
+
+                <p className="mx-auto mt-2 max-w-full break-all font-mono text-[clamp(1.3rem,7vw,2rem)] font-black leading-tight tracking-[0.08em] text-[#18392B] [overflow-wrap:anywhere]">
+                  {displayCode || "—"}
+                </p>
+              </div>
+
+              {state === "active" ? (
+                <p className="mt-4 rounded-xl bg-[#E9EDDD] p-3 text-sm font-semibold leading-5 text-[#36562B]">
+                  Show this screen to the
+                  store during pickup.
+                </p>
+              ) : null}
+            </div>
+
+            <div className="border-t border-black/[0.07] px-5 py-2">
+              <TicketInfoRow
+                label="Pickup"
+                value={`${formatDate(
+                  claim.pickup_start,
+                )} · ${formatPickupWindow(
+                  claim,
+                )}`}
+              />
+
+              <TicketInfoRow
+                label="Location"
+                value={location}
+              />
+
+              <TicketInfoRow
+                label="Order"
+                value={`${claim.quantity} × ${claim.deal_title}`}
+              />
+
+              <TicketInfoRow
+                label="Total"
+                value={formatMoney(
+                  claim.total_price,
+                )}
+              />
+
+              <TicketInfoRow
+                label="Status"
+                value={
+                  state === "collected"
+                    ? `Collected ${formatDateTime(
+                        claim.picked_up_at ||
+                          claim.collected_at,
+                      )}`
+                    : state
+                }
+                last
+              />
+            </div>
+          </section>
+
+          <Link
+            href={`/deals/${claim.deal_id}`}
+            onClick={onClose}
+            className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#18392B] px-5 text-sm font-black text-white"
+          >
+            View deal
+            <ExternalLink
+              size={16}
+              aria-hidden="true"
+            />
+          </Link>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-2 min-h-11 w-full text-sm font-black text-black/45"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-function ClaimStatusPill({ state }: { state: ClaimState }) {
+function ClaimStatus({
+  state,
+}: {
+  state: ClaimState;
+}) {
+  const config = {
+    active: {
+      label: "Active",
+      icon: Clock3,
+      className:
+        "bg-[#E4EAD7] text-[#36562B]",
+    },
+
+    collected: {
+      label: "Collected",
+      icon: TicketCheck,
+      className:
+        "bg-[#E4EAD7] text-[#36562B]",
+    },
+
+    expired: {
+      label: "Expired",
+      icon: TimerOff,
+      className:
+        "bg-[#FFF0EA] text-[#8A3A20]",
+    },
+  }[state];
+
+  const Icon = config.icon;
+
   return (
-    <StatusPill tone={getStatusTone(state)} icon={getStatusIcon(state)}>
-      {state === "collected" ? "Collected" : state === "expired" ? "Expired" : "Active"}
-    </StatusPill>
+    <span
+      className={[
+        "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[9px] font-black uppercase",
+        config.className,
+      ].join(" ")}
+    >
+      <Icon
+        size={11}
+        aria-hidden="true"
+      />
+
+      {config.label}
+    </span>
+  );
+}
+
+function TicketInfoRow({
+  label,
+  value,
+  last = false,
+}: {
+  label: string;
+  value: string;
+  last?: boolean;
+}) {
+  return (
+    <div
+      className={[
+        "flex min-w-0 items-start justify-between gap-4 py-3",
+        last
+          ? ""
+          : "border-b border-black/[0.07]",
+      ].join(" ")}
+    >
+      <span className="shrink-0 text-[9px] font-black uppercase tracking-[0.08em] text-black/35">
+        {label}
+      </span>
+
+      <span className="min-w-0 break-words text-right text-sm font-semibold capitalize [overflow-wrap:anywhere]">
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function WalletLoading() {
+  return (
+    <main className="mx-auto w-full max-w-[1120px] px-3 pt-4 sm:px-5">
+      <div className="h-44 animate-pulse rounded-[1.6rem] bg-black/[0.07]" />
+
+      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {Array.from({
+          length: 3,
+        }).map((_, index) => (
+          <div
+            key={index}
+            className="h-64 animate-pulse rounded-[1.45rem] bg-black/[0.06]"
+          />
+        ))}
+      </div>
+    </main>
+  );
+}
+
+function ClaimsGridLoading() {
+  return (
+    <section className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      {Array.from({
+        length: 3,
+      }).map((_, index) => (
+        <div
+          key={index}
+          className="h-64 animate-pulse rounded-[1.45rem] bg-black/[0.06]"
+        />
+      ))}
+    </section>
   );
 }

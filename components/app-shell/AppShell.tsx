@@ -5,14 +5,30 @@ import BottomNavigation from "./BottomNavigation";
 
 type AppShellProps = {
   children: ReactNode;
+  wide?: boolean;
 };
 
-export default function AppShell({ children }: AppShellProps) {
+export default function AppShell({
+  children,
+  wide = false,
+}: AppShellProps) {
   return (
-    <div className="claim-app-shell">
+    <div
+      className={[
+        "claim-app-shell",
+        wide ? "claim-app-shell--wide" : "",
+      ].join(" ")}
+    >
       <ServiceWorkerRegistration />
 
-      <main className="claim-app-content">{children}</main>
+      <main
+        className={[
+          "claim-app-content",
+          wide ? "claim-app-content--wide" : "",
+        ].join(" ")}
+      >
+        {children}
+      </main>
 
       <BottomNavigation />
     </div>
