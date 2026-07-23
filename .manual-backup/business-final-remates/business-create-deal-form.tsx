@@ -4,7 +4,6 @@ import {
   CircleAlert,
   Clock3,
   Euro,
-  ImagePlus,
   PackagePlus,
   Save,
   Store,
@@ -24,11 +23,6 @@ import {
   type BusinessStoreOption,
 } from "@/lib/api/business-create";
 import { formatMoney } from "@/lib/utils/format";
-import { supabase } from "@/lib/supabase/client";
-import {
-  uploadBusinessImage,
-  validateBusinessImage,
-} from "@/lib/storage/business-media";
 
 type DealStatus =
   | "draft"
@@ -151,12 +145,6 @@ export function BusinessCreateDealForm() {
   ] = useState(true);
 
   const [message, setMessage] =
-    useState<string | null>(null);
-
-  const [imageFile, setImageFile] =
-    useState<File | null>(null);
-
-  const [imagePreview, setImagePreview] =
     useState<string | null>(null);
 
   const selectedStore = useMemo(
@@ -312,7 +300,7 @@ export function BusinessCreateDealForm() {
         );
       }
 
-      const created = await createBusinessDeal({
+      await createBusinessDeal({
         business_id: businessId,
         title: title.trim(),
         description:
@@ -333,34 +321,6 @@ export function BusinessCreateDealForm() {
           ),
         status,
       });
-
-      if (imageFile) {
-        const uploaded =
-          await uploadBusinessImage({
-            file: imageFile,
-            bucket: "deal-images",
-            folder: businessId,
-          });
-
-        const { error: imageError } =
-          await supabase
-            .from("deals")
-            .update({
-              image_url:
-                uploaded.publicUrl,
-            })
-            .eq("id", created.id)
-            .eq(
-              "business_id",
-              businessId,
-            );
-
-        if (imageError) {
-          throw new Error(
-            "The deal was created, but its image could not be attached.",
-          );
-        }
-      }
 
       router.replace(
         "/business/deals",
@@ -406,97 +366,6 @@ export function BusinessCreateDealForm() {
       ) : null}
 
       <div className="space-y-4">
-        <FormSection
-          title="Deal image"
-          icon={
-            <ImagePlus
-              size={19}
-              aria-hidden="true"
-            />
-          }
-        >
-          <label className="block cursor-pointer">
-            <div className="relative aspect-[16/9] overflow-hidden rounded-xl bg-[#E9EDDD]">
-              {imagePreview ? (
-                <img
-                  src={imagePreview}
-                  alt="Deal preview"
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="grid h-full place-items-center text-center text-[#18392B]">
-                  <div>
-                    <ImagePlus
-                      size={29}
-                      className="mx-auto"
-                      aria-hidden="true"
-                    />
-
-                    <p className="mt-3 text-sm font-black">
-                      Add a food photo
-                    </p>
-
-                    <p className="mt-1 text-xs opacity-55">
-                      JPG, PNG or WebP · max 5 MB
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <span className="absolute bottom-3 right-3 rounded-full bg-white px-4 py-2 text-xs font-black text-[#18392B] shadow">
-                {imagePreview
-                  ? "Change image"
-                  : "Choose image"}
-              </span>
-            </div>
-
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={(event) => {
-                const file =
-                  event.target.files?.[0];
-
-                event.target.value = "";
-
-                if (!file) return;
-
-                try {
-                  validateBusinessImage(file);
-
-                  setImageFile(file);
-                  setImagePreview(
-                    URL.createObjectURL(
-                      file,
-                    ),
-                  );
-                  setMessage(null);
-                } catch (imageError) {
-                  setMessage(
-                    imageError instanceof Error
-                      ? imageError.message
-                      : "Could not use image.",
-                  );
-                }
-              }}
-            />
-          </label>
-
-          {imagePreview ? (
-            <button
-              type="button"
-              onClick={() => {
-                setImageFile(null);
-                setImagePreview(null);
-              }}
-              className="min-h-10 w-full rounded-xl bg-black/[0.05] text-xs font-black text-black/50"
-            >
-              Remove image
-            </button>
-          ) : null}
-        </FormSection>
-
         <FormSection
           title="Store"
           icon={

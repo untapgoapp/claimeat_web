@@ -27,7 +27,6 @@ import {
   type ManagedBusinessDeal,
 } from "@/lib/api/business-deals";
 import { formatMoney } from "@/lib/utils/format";
-import { BusinessCloseDealSheet } from "@/components/business/deals/business-close-deal-sheet";
 
 type DealFilter =
   | "all"
@@ -175,11 +174,6 @@ export function BusinessDealsManager() {
     );
 
   const [deleteDeal, setDeleteDeal] =
-    useState<ManagedBusinessDeal | null>(
-      null,
-    );
-
-  const [closeDeal, setCloseDeal] =
     useState<ManagedBusinessDeal | null>(
       null,
     );
@@ -474,22 +468,6 @@ export function BusinessDealsManager() {
           onUpdated={(updated) => {
             updateDealInState(updated);
             setEditingDeal(null);
-          }}
-        />
-      ) : null}
-
-      {closeDeal ? (
-        <BusinessCloseDealSheet
-          deal={closeDeal}
-          busy={busy}
-          onClose={() => {
-            if (!busy) {
-              setCloseDeal(null);
-            }
-          }}
-          onConfirm={async () => {
-            await handleCloseDeal(closeDeal);
-            setCloseDeal(null);
           }}
         />
       ) : null}
