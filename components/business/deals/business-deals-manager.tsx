@@ -3,6 +3,8 @@
 import Link from "next/link";
 import {
   CircleAlert,
+  Clock3,
+  Eye,
   Lock,
   Pencil,
   Plus,
@@ -10,7 +12,13 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from "react";
+
 import {
   closeManagedBusinessDeal,
   deleteManagedBusinessDeal,
@@ -20,95 +28,210 @@ import {
 } from "@/lib/api/business-deals";
 import { formatMoney } from "@/lib/utils/format";
 
-type DealFilter = "all" | "available" | "draft" | "sold_out" | "expired";
+type DealFilter =
+  | "all"
+  | "available"
+  | "draft"
+  | "sold_out"
+  | "expired";
 
-const filters: { value: DealFilter; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "available", label: "Available" },
-  { value: "draft", label: "Draft" },
+const filters: {
+  value: DealFilter;
+  label: string;
+}[] = [
+  { value: "available", label: "Live" },
+  { value: "draft", label: "Drafts" },
   { value: "sold_out", label: "Closed" },
   { value: "expired", label: "Expired" },
+  { value: "all", label: "All" },
 ];
 
 const categories = [
   { value: "bakery", label: "Bakery" },
-  { value: "fruit_veg", label: "Fruit & veg" },
-  { value: "ready_meal", label: "Ready meal" },
+  {
+    value: "fruit_veg",
+    label: "Fruit & veg",
+  },
+  {
+    value: "ready_meal",
+    label: "Ready meal",
+  },
   { value: "grocery", label: "Grocery" },
-  { value: "family_pack", label: "Family pack" },
-  { value: "mystery_bag", label: "Mystery bag" },
+  {
+    value: "family_pack",
+    label: "Family pack",
+  },
+  {
+    value: "mystery_bag",
+    label: "Mystery bag",
+  },
 ];
 
-function toDatetimeLocal(value: string | null) {
+const fieldClass =
+  "min-h-12 w-full min-w-0 rounded-xl border border-black/10 bg-white px-3 text-base outline-none focus:border-[#6F7D43] disabled:bg-black/[0.04] disabled:text-black/40";
+
+function toDatetimeLocal(
+  value: string | null,
+) {
   if (!value) return "";
 
   const date = new Date(value);
 
-  if (Number.isNaN(date.getTime())) return "";
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
 
-  const offset = date.getTimezoneOffset();
-  const localDate = new Date(date.getTime() - offset * 60 * 1000);
+  const offset =
+    date.getTimezoneOffset();
 
-  return localDate.toISOString().slice(0, 16);
+  return new Date(
+    date.getTime() -
+      offset * 60 * 1000,
+  )
+    .toISOString()
+    .slice(0, 16);
 }
 
-function fromDatetimeLocal(value: string) {
+function fromDatetimeLocal(
+  value: string,
+) {
   if (!value) return null;
-  return new Date(value).toISOString();
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(
+      "Enter a valid pickup time.",
+    );
+  }
+
+  return date.toISOString();
 }
 
-function formatPickup(value: string | null) {
+function formatPickup(
+  value: string | null,
+) {
   if (!value) return "TBD";
 
   const date = new Date(value);
 
-  if (Number.isNaN(date.getTime())) return "TBD";
+  if (Number.isNaN(date.getTime())) {
+    return "TBD";
+  }
 
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
+  return new Intl.DateTimeFormat(
+    "en-GB",
+    {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    },
+  ).format(date);
+}
+
+function formatPickupRange(
+  deal: ManagedBusinessDeal,
+) {
+  if (
+    !deal.pickupStart ||
+    !deal.pickupEnd
+  ) {
+    return "Pickup time not set";
+  }
+
+  return `${formatPickup(
+    deal.pickupStart,
+  )} – ${formatPickup(deal.pickupEnd)}`;
+}
+
+function useModalBodyLock() {
+  useEffect(() => {
+    const previous =
+      document.body.style.overflow;
+
+    document.body.style.overflow =
+      "hidden";
+
+    return () => {
+      document.body.style.overflow =
+        previous;
+    };
+  }, []);
 }
 
 export function BusinessDealsManager() {
-  const [deals, setDeals] = useState<ManagedBusinessDeal[]>([]);
-  const [filter, setFilter] = useState<DealFilter>("all");
-  const [editingDeal, setEditingDeal] = useState<ManagedBusinessDeal | null>(
-    null
-  );
-  const [deleteDeal, setDeleteDeal] = useState<ManagedBusinessDeal | null>(
-    null
-  );
-  const [busy, setBusy] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState<string | null>(null);
+  const [deals, setDeals] = useState<
+    ManagedBusinessDeal[]
+  >([]);
+
+  const [filter, setFilter] =
+    useState<DealFilter>("available");
+
+  const [editingDeal, setEditingDeal] =
+    useState<ManagedBusinessDeal | null>(
+      null,
+    );
+
+  const [deleteDeal, setDeleteDeal] =
+    useState<ManagedBusinessDeal | null>(
+      null,
+    );
+
+  const [busy, setBusy] =
+    useState(false);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [message, setMessage] =
+    useState<string | null>(null);
 
   const filteredDeals = useMemo(() => {
-    if (filter === "all") return deals;
-    return deals.filter((deal) => deal.status === filter);
+    if (filter === "all") {
+      return deals;
+    }
+
+    return deals.filter(
+      (deal) => deal.status === filter,
+    );
   }, [deals, filter]);
 
-  const stats = useMemo(() => {
-    return {
+  const stats = useMemo(
+    () => ({
       total: deals.length,
-      available: deals.filter((deal) => deal.status === "available").length,
-      locked: deals.filter((deal) => deal.hasClaims).length,
-      deletable: deals.filter((deal) => deal.canDelete).length,
-    };
-  }, [deals]);
+
+      available: deals.filter(
+        (deal) =>
+          deal.status === "available",
+      ).length,
+
+      drafts: deals.filter(
+        (deal) =>
+          deal.status === "draft",
+      ).length,
+
+      claimed: deals.filter(
+        (deal) => deal.hasClaims,
+      ).length,
+    }),
+    [deals],
+  );
 
   async function loadDeals() {
     setLoading(true);
     setMessage(null);
 
     try {
-      const nextDeals = await fetchManagedBusinessDeals();
+      const nextDeals =
+        await fetchManagedBusinessDeals();
+
       setDeals(nextDeals);
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Could not load deals."
+        error instanceof Error
+          ? error.message
+          : "Could not load deals.",
       );
     } finally {
       setLoading(false);
@@ -119,18 +242,30 @@ export function BusinessDealsManager() {
     void loadDeals();
   }, []);
 
-  async function handleCloseDeal(deal: ManagedBusinessDeal) {
+  async function handleCloseDeal(
+    deal: ManagedBusinessDeal,
+  ) {
     setBusy(true);
     setMessage(null);
 
     try {
-      const updated = await closeManagedBusinessDeal(deal.id);
+      const updated =
+        await closeManagedBusinessDeal(
+          deal.id,
+        );
+
       setDeals((current) =>
-        current.map((item) => (item.id === updated.id ? updated : item))
+        current.map((item) =>
+          item.id === updated.id
+            ? updated
+            : item,
+        ),
       );
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Could not close deal."
+        error instanceof Error
+          ? error.message
+          : "Could not close deal.",
       );
     } finally {
       setBusy(false);
@@ -144,145 +279,192 @@ export function BusinessDealsManager() {
     setMessage(null);
 
     try {
-      await deleteManagedBusinessDeal(deleteDeal.id);
-      setDeals((current) =>
-        current.filter((deal) => deal.id !== deleteDeal.id)
+      await deleteManagedBusinessDeal(
+        deleteDeal.id,
       );
+
+      setDeals((current) =>
+        current.filter(
+          (deal) =>
+            deal.id !== deleteDeal.id,
+        ),
+      );
+
       setDeleteDeal(null);
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Could not delete deal."
+        error instanceof Error
+          ? error.message
+          : "Could not delete deal.",
       );
     } finally {
       setBusy(false);
     }
   }
 
-  function updateDealInState(updated: ManagedBusinessDeal) {
+  function updateDealInState(
+    updated: ManagedBusinessDeal,
+  ) {
     setDeals((current) =>
-      current.map((deal) => (deal.id === updated.id ? updated : deal))
+      current.map((deal) =>
+        deal.id === updated.id
+          ? updated
+          : deal,
+      ),
     );
   }
 
   return (
-    <div className="space-y-7 pb-16">
-      <section className="relative overflow-hidden rounded-[2.25rem] bg-[#6F7D43] p-6 text-white shadow-[0_24px_70px_rgba(95,78,55,0.14)] md:p-8">
-        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#9baa6a]/30 blur-3xl" />
-        <div className="absolute bottom-0 left-1/2 h-32 w-72 rounded-full bg-[#b76e45]/20 blur-3xl" />
+    <section className="business-mobile-page">
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-[#6F7D43]">
+            Inventory
+          </p>
 
-        <div className="relative z-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-          <div>
-            <p className="inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-wide text-[#dfe8b6]">
-              Business tools
-            </p>
+          <h1 className="mt-2 text-[2rem] font-black leading-none tracking-[-0.045em]">
+            Deals
+          </h1>
 
-            <h1 className="mt-4 text-4xl font-black tracking-tight md:text-6xl">
-              Manage deals
-            </h1>
-
-            <p className="mt-3 max-w-2xl text-white/62">
-              Edit live offers, close sold-out deals and safely delete drafts
-              before customers claim them.
-            </p>
-          </div>
-
-          <Link
-            href="/business/deals/new"
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-5 py-3 font-black text-[#2F261F] shadow-[0_10px_30px_rgba(95,78,55,0.08)] transition hover:bg-[#F4EFE6]"
-          >
-            <Plus size={18} />
-            Create deal
-          </Link>
+          <p className="mt-2 text-sm leading-5 text-black/45">
+            Publish, edit and close your
+            rescue offers.
+          </p>
         </div>
 
-        <div className="relative z-10 mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Total deals" value={String(stats.total)} />
-          <StatCard label="Available" value={String(stats.available)} />
-          <StatCard label="Locked" value={String(stats.locked)} />
-          <StatCard label="Deletable" value={String(stats.deletable)} />
-        </div>
-      </section>
+        <button
+          type="button"
+          onClick={() =>
+            void loadDeals()
+          }
+          disabled={loading || busy}
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-black/[0.07] bg-white text-[#18392B] shadow-sm disabled:opacity-50"
+          aria-label="Refresh deals"
+        >
+          <RefreshCw
+            size={19}
+            className={
+              loading ? "animate-spin" : ""
+            }
+            aria-hidden="true"
+          />
+        </button>
+      </header>
 
-      <section className="rounded-[1.75rem] bg-white p-5 shadow-[0_10px_30px_rgba(95,78,55,0.08)] ring-1 ring-[#DDD2C2] dark:bg-[#241f1a] dark:ring-white/10 md:p-6">
-        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
-          <div>
-            <p className="text-sm font-black uppercase tracking-wide text-[#6F7D43] dark:text-[#E1E9B8]">
-              Inventory
-            </p>
+      <div className="mt-6 grid grid-cols-2 gap-3">
+        <StatCard
+          label="Live"
+          value={String(stats.available)}
+        />
 
-            <h2 className="mt-1 text-3xl font-black tracking-tight">
-              Your offers
-            </h2>
-          </div>
+        <StatCard
+          label="Drafts"
+          value={String(stats.drafts)}
+        />
 
-          <div className="flex flex-wrap gap-2">
-            {filters.map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                onClick={() => setFilter(item.value)}
-                className={[
-                  "rounded-full px-4 py-2 text-sm font-black transition",
-                  filter === item.value
-                    ? "bg-[#6F7D43] text-white dark:bg-[#9baa6a] dark:text-[#2F261F]"
-                    : "bg-[#F4EFE6] text-black/50 hover:text-black dark:bg-[#171411] dark:text-white/45 dark:hover:text-white",
-                ].join(" ")}
-              >
-                {item.label}
-              </button>
-            ))}
+        <StatCard
+          label="With claims"
+          value={String(stats.claimed)}
+        />
 
+        <StatCard
+          label="Total"
+          value={String(stats.total)}
+        />
+      </div>
+
+      <Link
+        href="/business/deals/new"
+        className="mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-[#18392B] px-6 text-base font-black text-white shadow-[0_10px_26px_rgba(24,57,43,0.18)]"
+      >
+        <Plus
+          size={20}
+          strokeWidth={2.7}
+          aria-hidden="true"
+        />
+
+        Create new deal
+      </Link>
+
+      <div className="-mx-4 mt-5 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {filters.map((item) => {
+          const active =
+            filter === item.value;
+
+          return (
             <button
+              key={item.value}
               type="button"
-              onClick={() => loadDeals()}
-              className="inline-flex items-center gap-2 rounded-full bg-[#F4EFE6] px-4 py-2 text-sm font-black text-[#6F7D43] transition hover:bg-[#EEF1E3] dark:bg-[#171411] dark:text-[#E1E9B8]"
+              onClick={() =>
+                setFilter(item.value)
+              }
+              className={[
+                "min-h-9 shrink-0 rounded-full px-4 text-xs font-black",
+                active
+                  ? "bg-[#18392B] text-white"
+                  : "border border-black/[0.07] bg-white text-black/50",
+              ].join(" ")}
             >
-              <RefreshCw size={15} />
-              Refresh
+              {item.label}
             </button>
-          </div>
-        </div>
+          );
+        })}
+      </div>
 
-        {message ? (
-          <div className="mt-5 rounded-[1.5rem] bg-[#fff0ea] p-4 text-[#8a3a20]">
-            <div className="flex gap-3">
-              <CircleAlert size={20} />
-              <p className="font-semibold">{message}</p>
-            </div>
-          </div>
-        ) : null}
+      {message ? (
+        <div className="mt-4 flex gap-3 rounded-xl bg-[#FFF0EA] p-4 text-[#8A3A20]">
+          <CircleAlert
+            size={20}
+            className="shrink-0"
+            aria-hidden="true"
+          />
 
-        <div className="mt-6 space-y-3">
-          {loading ? (
-            <div className="rounded-[1.5rem] bg-[#F4EFE6] p-8 text-center dark:bg-[#171411]">
-              <p className="font-black">Loading deals...</p>
-            </div>
-          ) : filteredDeals.length === 0 ? (
-            <div className="rounded-[1.5rem] bg-[#F4EFE6] p-8 text-center dark:bg-[#171411]">
-              <p className="text-xl font-black">No deals here</p>
-              <p className="mt-2 text-sm text-black/50 dark:text-white/40">
-                Try another filter or create a new deal.
-              </p>
-            </div>
-          ) : (
-            filteredDeals.map((deal) => (
-              <DealManagementCard
-                key={deal.id}
-                deal={deal}
-                busy={busy}
-                onEdit={() => setEditingDeal(deal)}
-                onClose={() => handleCloseDeal(deal)}
-                onDelete={() => setDeleteDeal(deal)}
-              />
-            ))
-          )}
+          <p className="text-sm font-semibold">
+            {message}
+          </p>
         </div>
-      </section>
+      ) : null}
+
+      <div className="mt-4 space-y-3">
+        {loading ? (
+          <DealsLoading />
+        ) : filteredDeals.length === 0 ? (
+          <div className="rounded-[1.5rem] border border-black/[0.07] bg-white px-5 py-10 text-center">
+            <p className="text-lg font-black">
+              No deals here
+            </p>
+
+            <p className="mt-2 text-sm text-black/45">
+              Try another filter or create
+              a new deal.
+            </p>
+          </div>
+        ) : (
+          filteredDeals.map((deal) => (
+            <DealManagementCard
+              key={deal.id}
+              deal={deal}
+              busy={busy}
+              onEdit={() =>
+                setEditingDeal(deal)
+              }
+              onClose={() =>
+                void handleCloseDeal(deal)
+              }
+              onDelete={() =>
+                setDeleteDeal(deal)
+              }
+            />
+          ))
+        )}
+      </div>
 
       {editingDeal ? (
         <EditDealModal
           deal={editingDeal}
-          onClose={() => setEditingDeal(null)}
+          onClose={() =>
+            setEditingDeal(null)
+          }
           onUpdated={(updated) => {
             updateDealInState(updated);
             setEditingDeal(null);
@@ -294,22 +476,35 @@ export function BusinessDealsManager() {
         <DeleteDealModal
           deal={deleteDeal}
           busy={busy}
-          onClose={() => setDeleteDeal(null)}
-          onConfirm={handleDeleteDeal}
+          onClose={() =>
+            setDeleteDeal(null)
+          }
+          onConfirm={() =>
+            void handleDeleteDeal()
+          }
         />
       ) : null}
-    </div>
+    </section>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function StatCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
-    <div className="rounded-[1.5rem] bg-white/10 p-4 backdrop-blur">
-      <p className="text-xs font-black uppercase tracking-wide text-white/42">
+    <article className="min-h-[84px] rounded-[1.25rem] border border-black/[0.07] bg-white p-3.5">
+      <p className="text-[10px] font-black uppercase tracking-[0.08em] text-black/35">
         {label}
       </p>
-      <p className="mt-2 text-3xl font-black">{value}</p>
-    </div>
+
+      <p className="mt-2 text-xl font-black tracking-[-0.035em] text-[#18392B]">
+        {value}
+      </p>
+    </article>
   );
 }
 
@@ -326,106 +521,201 @@ function DealManagementCard({
   onClose: () => void;
   onDelete: () => void;
 }) {
+  const canClose = [
+    "available",
+    "draft",
+  ].includes(deal.status);
+
   return (
-    <div className="rounded-[1.5rem] border border-[#DDD2C2] bg-[#FBF8F2] p-4 transition hover:-translate-y-0.5 hover:shadow-lg dark:border-white/10 dark:bg-[#171411]">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge status={deal.status} />
+    <article className="overflow-hidden rounded-[1.4rem] border border-black/[0.07] bg-white">
+      <div className="p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge
+            status={deal.status}
+          />
 
-            {deal.hasClaims ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#fff6df] px-3 py-1 text-xs font-black uppercase tracking-wide text-[#74501f]">
-                <Lock size={13} />
-                {deal.claimCount} claim{deal.claimCount === 1 ? "" : "s"}
-              </span>
-            ) : (
-              <span className="rounded-full bg-[#eef8e6] px-3 py-1 text-xs font-black uppercase tracking-wide text-[#40591f]">
-                No claims
-              </span>
-            )}
-          </div>
+          {deal.hasClaims ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[#FFF0C7] px-2.5 py-1 text-[10px] font-black uppercase text-[#715914]">
+              <Lock
+                size={12}
+                aria-hidden="true"
+              />
 
-          <h3 className="mt-3 truncate text-xl font-black tracking-tight">
-            {deal.title}
-          </h3>
-
-          <p className="mt-1 line-clamp-1 text-sm text-black/50 dark:text-white/40">
-            {deal.description || "No description"}
-          </p>
-
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-black/50 dark:text-white/40">
-            <span>
-              Price:{" "}
-              <strong className="text-black dark:text-white">
-                {formatMoney(deal.price)}
-              </strong>
+              {deal.claimCount} claim
+              {deal.claimCount === 1
+                ? ""
+                : "s"}
             </span>
-            <span>Qty left: {deal.quantityLeft}</span>
-            <span>
-              Pickup: {formatPickup(deal.pickupStart)} to{" "}
-              {formatPickup(deal.pickupEnd)}
+          ) : (
+            <span className="rounded-full bg-[#E4EAD7] px-2.5 py-1 text-[10px] font-black uppercase text-[#36562B]">
+              No claims
             </span>
-          </div>
+          )}
         </div>
 
-        <div className="flex shrink-0 flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={onEdit}
-            className="inline-flex items-center gap-2 rounded-full bg-[#F4EFE6] px-4 py-2 text-sm font-black text-[#6F7D43] transition hover:bg-[#EEF1E3] dark:bg-[#241f1a] dark:text-[#E1E9B8]"
-          >
-            <Pencil size={15} />
-            Edit
-          </button>
+        <div className="mt-3 flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h2 className="line-clamp-2 text-lg font-black leading-5 tracking-[-0.025em]">
+              {deal.title}
+            </h2>
 
-          {deal.status !== "sold_out" ? (
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={busy}
-              className="rounded-full bg-[#6f7d43] px-4 py-2 text-sm font-black text-white transition hover:bg-[#5d6d32] disabled:opacity-60"
-            >
-              Close
-            </button>
-          ) : null}
+            <p className="mt-1.5 line-clamp-2 text-sm leading-5 text-black/45">
+              {deal.description ||
+                "No description"}
+            </p>
+          </div>
 
-          <button
-            type="button"
-            onClick={onDelete}
-            disabled={busy || !deal.canDelete}
-            title={
-              deal.canDelete
-                ? "Delete deal"
-                : "Deals with customer claims cannot be deleted"
-            }
-            className="inline-flex items-center gap-2 rounded-full bg-[#fff0ea] px-4 py-2 text-sm font-black text-[#8a3a20] transition hover:bg-[#ffe3d8] disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            <Trash2 size={15} />
-            Delete
-          </button>
+          <p className="shrink-0 text-lg font-black text-[#18392B]">
+            {formatMoney(deal.price)}
+          </p>
+        </div>
+
+        <div className="mt-3 rounded-xl bg-[#F3F0E8] px-3 py-2.5">
+          <p className="flex items-start gap-2 text-xs leading-5 text-black/50">
+            <Clock3
+              size={14}
+              className="mt-0.5 shrink-0 text-[#6F7D43]"
+              aria-hidden="true"
+            />
+
+            <span>
+              {formatPickupRange(deal)}
+            </span>
+          </p>
+        </div>
+
+        <div className="mt-3 flex items-center justify-between gap-3 text-xs text-black/45">
+          <span>
+            <strong className="text-black/70">
+              {deal.quantityLeft}
+            </strong>{" "}
+            remaining
+          </span>
+
+          <span>
+            {deal.paidClaimCount} paid ·{" "}
+            {deal.pickedUpCount} collected
+          </span>
         </div>
       </div>
-    </div>
+
+      <div className="grid grid-cols-2 gap-2 border-t border-black/[0.07] p-3">
+        <Link
+          href={`/deals/${deal.id}`}
+          className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#F3F0E8] text-sm font-black text-[#18392B]"
+        >
+          <Eye
+            size={16}
+            aria-hidden="true"
+          />
+
+          Preview
+        </Link>
+
+        <button
+          type="button"
+          onClick={onEdit}
+          className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#E9EDDD] text-sm font-black text-[#18392B]"
+        >
+          <Pencil
+            size={16}
+            aria-hidden="true"
+          />
+
+          Edit
+        </button>
+
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={busy || !canClose}
+          className="min-h-11 rounded-xl border border-[#18392B]/15 bg-white px-3 text-sm font-black text-[#18392B] disabled:border-black/[0.05] disabled:bg-black/[0.03] disabled:text-black/30"
+        >
+          {canClose
+            ? "Close deal"
+            : "Closed"}
+        </button>
+
+        <button
+          type="button"
+          onClick={onDelete}
+          disabled={busy}
+          className={[
+            "flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 text-sm font-black",
+            deal.canDelete
+              ? "bg-[#FFF0EA] text-[#8A3A20]"
+              : "bg-black/[0.035] text-black/30",
+          ].join(" ")}
+        >
+          {deal.canDelete ? (
+            <Trash2
+              size={16}
+              aria-hidden="true"
+            />
+          ) : (
+            <Lock
+              size={15}
+              aria-hidden="true"
+            />
+          )}
+
+          Delete
+        </button>
+      </div>
+    </article>
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const styles: Record<string, string> = {
-    available: "bg-[#EEF1E3] text-[#6F7D43]",
-    draft: "bg-black/[0.055] text-black/50",
-    sold_out: "bg-[#e9e2d6] text-[#6f5f4b]",
-    expired: "bg-[#fff0ea] text-[#8a3a20]",
-    cancelled: "bg-[#fff0ea] text-[#8a3a20]",
+function StatusBadge({
+  status,
+}: {
+  status: string;
+}) {
+  const styles: Record<
+    string,
+    string
+  > = {
+    available:
+      "bg-[#E4EAD7] text-[#36562B]",
+
+    draft:
+      "bg-black/[0.06] text-black/50",
+
+    sold_out:
+      "bg-[#EAE4D9] text-[#6F5F4B]",
+
+    closed:
+      "bg-[#EAE4D9] text-[#6F5F4B]",
+
+    expired:
+      "bg-[#F2E4DE] text-[#8A3A20]",
+
+    cancelled:
+      "bg-[#F2E4DE] text-[#8A3A20]",
+  };
+
+  const labels: Record<
+    string,
+    string
+  > = {
+    available: "Live",
+    draft: "Draft",
+    sold_out: "Closed",
+    closed: "Closed",
+    expired: "Expired",
+    cancelled: "Cancelled",
   };
 
   return (
     <span
       className={[
-        "rounded-full px-3 py-1 text-xs font-black uppercase tracking-wide",
-        styles[status] || styles.draft,
+        "rounded-full px-2.5 py-1 text-[10px] font-black uppercase",
+        styles[status] ||
+          styles.draft,
       ].join(" ")}
     >
-      {status.replace("_", " ")}
+      {labels[status] ||
+        status.replaceAll("_", " ")}
     </span>
   );
 }
@@ -437,57 +727,175 @@ function EditDealModal({
 }: {
   deal: ManagedBusinessDeal;
   onClose: () => void;
-  onUpdated: (deal: ManagedBusinessDeal) => void;
+  onUpdated: (
+    deal: ManagedBusinessDeal,
+  ) => void;
 }) {
-  const [title, setTitle] = useState(deal.title || "");
-  const [description, setDescription] = useState(deal.description || "");
-  const [category, setCategory] = useState(deal.category || "mystery_bag");
-  const [price, setPrice] = useState(String(deal.price || ""));
-  const [originalPrice, setOriginalPrice] = useState(
-    String(deal.originalPrice || "")
+  useModalBodyLock();
+
+  const [title, setTitle] =
+    useState(deal.title || "");
+
+  const [description, setDescription] =
+    useState(deal.description || "");
+
+  const [category, setCategory] =
+    useState(
+      deal.category || "mystery_bag",
+    );
+
+  const [price, setPrice] =
+    useState(String(deal.price || ""));
+
+  const [
+    originalPrice,
+    setOriginalPrice,
+  ] = useState(
+    String(deal.originalPrice || ""),
   );
-  const [quantityLeft, setQuantityLeft] = useState(
-    String(deal.quantityLeft ?? 0)
+
+  const [
+    quantityLeft,
+    setQuantityLeft,
+  ] = useState(
+    String(deal.quantityLeft ?? 0),
   );
-  const [pickupStart, setPickupStart] = useState(
-    toDatetimeLocal(deal.pickupStart)
+
+  const [
+    pickupStart,
+    setPickupStart,
+  ] = useState(
+    toDatetimeLocal(deal.pickupStart),
   );
-  const [pickupEnd, setPickupEnd] = useState(toDatetimeLocal(deal.pickupEnd));
-  const [status, setStatus] = useState(deal.status || "available");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  const [pickupEnd, setPickupEnd] =
+    useState(
+      toDatetimeLocal(deal.pickupEnd),
+    );
+
+  const [status, setStatus] =
+    useState(
+      deal.status || "available",
+    );
+
+  const [busy, setBusy] =
+    useState(false);
+
+  const [error, setError] =
+    useState<string | null>(null);
 
   const locked = !deal.canEditFully;
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault();
     setBusy(true);
     setError(null);
 
     try {
+      if (!title.trim()) {
+        throw new Error(
+          "Add a deal title.",
+        );
+      }
+
+      if (!locked) {
+        const nextPrice = Number(price);
+
+        const nextOriginalPrice =
+          Number(originalPrice);
+
+        const nextQuantity =
+          Number(quantityLeft);
+
+        if (
+          !Number.isFinite(nextPrice) ||
+          nextPrice <= 0
+        ) {
+          throw new Error(
+            "Enter a valid price.",
+          );
+        }
+
+        if (
+          !Number.isFinite(
+            nextOriginalPrice,
+          ) ||
+          nextOriginalPrice < nextPrice
+        ) {
+          throw new Error(
+            "Original price must be at least the deal price.",
+          );
+        }
+
+        if (
+          !Number.isInteger(
+            nextQuantity,
+          ) ||
+          nextQuantity < 0
+        ) {
+          throw new Error(
+            "Quantity cannot be negative.",
+          );
+        }
+
+        if (
+          pickupStart &&
+          pickupEnd &&
+          new Date(pickupEnd).getTime() <=
+            new Date(
+              pickupStart,
+            ).getTime()
+        ) {
+          throw new Error(
+            "Pickup end must be after pickup start.",
+          );
+        }
+      }
+
       const payload = locked
         ? {
-            title,
-            description,
+            title: title.trim(),
+            description:
+              description.trim(),
             status,
           }
         : {
-            title,
-            description,
+            title: title.trim(),
+            description:
+              description.trim(),
             category,
             price: Number(price),
-            original_price: Number(originalPrice),
-            quantity_left: Number(quantityLeft),
-            pickup_start: fromDatetimeLocal(pickupStart),
-            pickup_end: fromDatetimeLocal(pickupEnd),
+            original_price: Number(
+              originalPrice,
+            ),
+            quantity_left: Number(
+              quantityLeft,
+            ),
+            pickup_start:
+              fromDatetimeLocal(
+                pickupStart,
+              ),
+            pickup_end:
+              fromDatetimeLocal(
+                pickupEnd,
+              ),
             status,
           };
 
-      const updated = await updateManagedBusinessDeal(deal.id, payload);
+      const updated =
+        await updateManagedBusinessDeal(
+          deal.id,
+          payload,
+        );
+
       onUpdated(updated);
-    } catch (error) {
+    } catch (submitError) {
       setError(
-        error instanceof Error ? error.message : "Could not update deal."
+        submitError instanceof Error
+          ? submitError.message
+          : "Could not update deal.",
       );
     } finally {
       setBusy(false);
@@ -495,190 +903,296 @@ function EditDealModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[10000]">
-      <button
-        type="button"
-        className="absolute inset-0 bg-[#6F7D43]/40 backdrop-blur-xl"
-        onClick={onClose}
-        aria-label="Close edit modal"
-      />
+    <div className="fixed inset-0 z-[2147483500] overflow-y-auto bg-[#F5F2EB]">
+      <form
+        onSubmit={handleSubmit}
+        className="mx-auto flex min-h-[100dvh] w-full max-w-xl flex-col"
+      >
+        <header
+          className="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-black/[0.07] bg-[#F5F2EB]/95 px-4 py-3 backdrop-blur"
+          style={{
+            paddingTop:
+              "max(12px, env(safe-area-inset-top))",
+          }}
+        >
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.1em] text-[#6F7D43]">
+              Edit deal
+            </p>
 
-      <div className="pointer-events-none relative z-10 flex min-h-screen items-center justify-center px-4 py-8">
-        <form
-          onSubmit={handleSubmit}
-          className="pointer-events-auto relative max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-[2.25rem] bg-[#FBF8F2] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.25)] ring-1 ring-black/10 dark:bg-[#241f1a] dark:ring-white/10"
+            <h1 className="mt-1 truncate text-xl font-black">
+              {deal.title}
+            </h1>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-black/[0.06]"
+            aria-label="Close editor"
+          >
+            <X
+              size={19}
+              aria-hidden="true"
+            />
+          </button>
+        </header>
+
+        <div className="flex-1 space-y-4 px-4 py-5">
+          {locked ? (
+            <div className="flex gap-3 rounded-xl bg-[#FFF0C7] p-4 text-[#715914]">
+              <Lock
+                size={20}
+                className="shrink-0"
+                aria-hidden="true"
+              />
+
+              <p className="text-sm leading-5">
+                Customers have already
+                claimed this deal. Price,
+                quantity, category and
+                pickup times are locked.
+              </p>
+            </div>
+          ) : null}
+
+          <FormSection title="Food details">
+            <Field label="Title">
+              <input
+                value={title}
+                onChange={(event) =>
+                  setTitle(
+                    event.target.value,
+                  )
+                }
+                required
+                className={fieldClass}
+              />
+            </Field>
+
+            <Field label="Description">
+              <textarea
+                value={description}
+                onChange={(event) =>
+                  setDescription(
+                    event.target.value,
+                  )
+                }
+                rows={4}
+                className={`${fieldClass} py-3`}
+              />
+            </Field>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Category">
+                <select
+                  value={category}
+                  onChange={(event) =>
+                    setCategory(
+                      event.target.value,
+                    )
+                  }
+                  disabled={locked}
+                  className={fieldClass}
+                >
+                  {categories.map(
+                    (item) => (
+                      <option
+                        key={item.value}
+                        value={item.value}
+                      >
+                        {item.label}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </Field>
+
+              <Field label="Status">
+                <select
+                  value={status}
+                  onChange={(event) =>
+                    setStatus(
+                      event.target.value,
+                    )
+                  }
+                  className={fieldClass}
+                >
+                  <option value="draft">
+                    Draft
+                  </option>
+
+                  <option value="available">
+                    Live
+                  </option>
+
+                  <option value="sold_out">
+                    Closed
+                  </option>
+
+                  <option value="expired">
+                    Expired
+                  </option>
+
+                  <option value="cancelled">
+                    Cancelled
+                  </option>
+                </select>
+              </Field>
+            </div>
+          </FormSection>
+
+          <FormSection title="Price and quantity">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Deal price">
+                <input
+                  value={price}
+                  onChange={(event) =>
+                    setPrice(
+                      event.target.value,
+                    )
+                  }
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  disabled={locked}
+                  className={fieldClass}
+                />
+              </Field>
+
+              <Field label="Original price">
+                <input
+                  value={originalPrice}
+                  onChange={(event) =>
+                    setOriginalPrice(
+                      event.target.value,
+                    )
+                  }
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  disabled={locked}
+                  className={fieldClass}
+                />
+              </Field>
+            </div>
+
+            <Field label="Quantity remaining">
+              <input
+                value={quantityLeft}
+                onChange={(event) =>
+                  setQuantityLeft(
+                    event.target.value,
+                  )
+                }
+                type="number"
+                min="0"
+                disabled={locked}
+                className={fieldClass}
+              />
+            </Field>
+          </FormSection>
+
+          <FormSection title="Pickup window">
+            <Field label="Pickup starts">
+              <input
+                value={pickupStart}
+                onChange={(event) =>
+                  setPickupStart(
+                    event.target.value,
+                  )
+                }
+                type="datetime-local"
+                disabled={locked}
+                className={fieldClass}
+              />
+            </Field>
+
+            <Field label="Pickup ends">
+              <input
+                value={pickupEnd}
+                onChange={(event) =>
+                  setPickupEnd(
+                    event.target.value,
+                  )
+                }
+                type="datetime-local"
+                disabled={locked}
+                className={fieldClass}
+              />
+            </Field>
+          </FormSection>
+
+          {error ? (
+            <div className="rounded-xl bg-[#FFF0EA] p-4 text-sm font-semibold text-[#8A3A20]">
+              {error}
+            </div>
+          ) : null}
+        </div>
+
+        <footer
+          className="sticky bottom-0 z-20 grid grid-cols-[0.8fr_1.2fr] gap-2 border-t border-black/[0.07] bg-[#F5F2EB]/96 px-4 py-3 backdrop-blur"
+          style={{
+            paddingBottom:
+              "max(12px, env(safe-area-inset-bottom))",
+          }}
         >
           <button
             type="button"
             onClick={onClose}
-            className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full bg-black/[0.06] text-black/60 transition hover:bg-[#556235]/[0.1] hover:text-black dark:bg-white/10 dark:text-white/60 dark:hover:text-white"
-            aria-label="Close"
+            className="min-h-12 rounded-xl bg-black/[0.06] text-sm font-black text-black/55"
           >
-            <X size={17} />
+            Cancel
           </button>
 
-          <div className="pr-12">
-            <p className="text-sm font-black uppercase tracking-wide text-[#6F7D43] dark:text-[#E1E9B8]">
-              Edit deal
-            </p>
-
-            <h2 className="mt-2 text-3xl font-black tracking-tight">
-              {deal.title}
-            </h2>
-
-            {locked ? (
-              <p className="mt-3 rounded-2xl bg-[#fff6df] p-3 text-sm font-semibold leading-6 text-[#74501f]">
-                This deal already has customer claims. Price, quantity, category
-                and pickup window are locked.
-              </p>
-            ) : null}
-          </div>
-
-          <div className="mt-6 grid gap-4">
-            <label className="grid gap-2">
-              <span className="text-sm font-black">Title</span>
-              <input
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                required
-                className="rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none focus:border-[#6f7d43] dark:border-white/10 dark:bg-[#171411]"
-              />
-            </label>
-
-            <label className="grid gap-2">
-              <span className="text-sm font-black">Description</span>
-              <textarea
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                rows={3}
-                className="rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none focus:border-[#6f7d43] dark:border-white/10 dark:bg-[#171411]"
-              />
-            </label>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="grid gap-2">
-                <span className="text-sm font-black">Category</span>
-                <select
-                  value={category}
-                  onChange={(event) => setCategory(event.target.value)}
-                  disabled={locked}
-                  className="rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none disabled:opacity-50 dark:border-white/10 dark:bg-[#171411]"
-                >
-                  {categories.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="grid gap-2">
-                <span className="text-sm font-black">Status</span>
-                <select
-                  value={status}
-                  onChange={(event) => setStatus(event.target.value)}
-                  className="rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none focus:border-[#6f7d43] dark:border-white/10 dark:bg-[#171411]"
-                >
-                  <option value="draft">Draft</option>
-                  <option value="available">Available</option>
-                  <option value="sold_out">Sold out</option>
-                  <option value="expired">Expired</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-              </label>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <label className="grid gap-2">
-                <span className="text-sm font-black">Price</span>
-                <input
-                  value={price}
-                  onChange={(event) => setPrice(event.target.value)}
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  disabled={locked}
-                  className="rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none disabled:opacity-50 dark:border-white/10 dark:bg-[#171411]"
-                />
-              </label>
-
-              <label className="grid gap-2">
-                <span className="text-sm font-black">Original price</span>
-                <input
-                  value={originalPrice}
-                  onChange={(event) => setOriginalPrice(event.target.value)}
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  disabled={locked}
-                  className="rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none disabled:opacity-50 dark:border-white/10 dark:bg-[#171411]"
-                />
-              </label>
-
-              <label className="grid gap-2">
-                <span className="text-sm font-black">Quantity left</span>
-                <input
-                  value={quantityLeft}
-                  onChange={(event) => setQuantityLeft(event.target.value)}
-                  type="number"
-                  min="0"
-                  disabled={locked}
-                  className="rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none disabled:opacity-50 dark:border-white/10 dark:bg-[#171411]"
-                />
-              </label>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="grid gap-2">
-                <span className="text-sm font-black">Pickup start</span>
-                <input
-                  value={pickupStart}
-                  onChange={(event) => setPickupStart(event.target.value)}
-                  type="datetime-local"
-                  disabled={locked}
-                  className="rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none disabled:opacity-50 dark:border-white/10 dark:bg-[#171411]"
-                />
-              </label>
-
-              <label className="grid gap-2">
-                <span className="text-sm font-black">Pickup end</span>
-                <input
-                  value={pickupEnd}
-                  onChange={(event) => setPickupEnd(event.target.value)}
-                  type="datetime-local"
-                  disabled={locked}
-                  className="rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none disabled:opacity-50 dark:border-white/10 dark:bg-[#171411]"
-                />
-              </label>
-            </div>
-          </div>
-
-          {error ? (
-            <div className="mt-5 rounded-[1.5rem] bg-[#fff0ea] p-4 text-sm font-semibold text-[#8a3a20]">
-              {error}
-            </div>
-          ) : null}
-
-          <div className="mt-6 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-full bg-[#F4EFE6] px-5 py-3 font-black text-black/55 transition hover:text-black dark:bg-[#171411] dark:text-white/50 dark:hover:text-white"
-            >
-              Cancel
-            </button>
-
-            <button
-              type="submit"
-              disabled={busy}
-              className="rounded-full bg-[#6F7D43] px-5 py-3 font-black text-white transition hover:bg-[#556235] disabled:opacity-60 dark:bg-[#9baa6a] dark:text-[#2F261F]"
-            >
-              {busy ? "Saving..." : "Save changes"}
-            </button>
-          </div>
-        </form>
-      </div>
+          <button
+            type="submit"
+            disabled={busy}
+            className="min-h-12 rounded-xl bg-[#18392B] text-sm font-black text-white disabled:opacity-50"
+          >
+            {busy
+              ? "Saving…"
+              : "Save changes"}
+          </button>
+        </footer>
+      </form>
     </div>
+  );
+}
+
+function FormSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-4 rounded-[1.4rem] border border-black/[0.07] bg-white p-4">
+      <h2 className="text-base font-black">
+        {title}
+      </h2>
+
+      {children}
+    </section>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="grid min-w-0 gap-1.5">
+      <span className="text-[11px] font-black uppercase tracking-[0.06em] text-black/40">
+        {label}
+      </span>
+
+      {children}
+    </label>
   );
 }
 
@@ -693,62 +1207,102 @@ function DeleteDealModal({
   onClose: () => void;
   onConfirm: () => void;
 }) {
+  useModalBodyLock();
+
   const blocked = !deal.canDelete;
 
   return (
-    <div className="fixed inset-0 z-[10000]">
-      <button
-        type="button"
-        className="absolute inset-0 bg-[#6F7D43]/40 backdrop-blur-xl"
-        onClick={onClose}
-        aria-label="Close delete modal"
-      />
+    <div className="fixed inset-0 z-[2147483500] flex items-end bg-black/40 p-0 sm:items-center sm:justify-center sm:p-5">
+      <div className="w-full rounded-t-[1.8rem] bg-[#F5F2EB] p-5 sm:max-w-md sm:rounded-[1.8rem]">
+        <div className="mx-auto mb-5 h-1.5 w-10 rounded-full bg-black/15 sm:hidden" />
 
-      <div className="pointer-events-none relative z-10 flex min-h-screen items-center justify-center px-4 py-8">
-        <div className="pointer-events-auto w-full max-w-md rounded-[2.25rem] bg-[#FBF8F2] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.25)] ring-1 ring-black/10 dark:bg-[#241f1a] dark:ring-white/10">
-          <p className="text-sm font-black uppercase tracking-wide text-[#8a3a20]">
-            Delete deal
+        <p className="text-[10px] font-black uppercase tracking-[0.1em] text-[#8A3A20]">
+          Delete deal
+        </p>
+
+        <h2 className="mt-2 text-2xl font-black tracking-[-0.035em]">
+          {deal.title}
+        </h2>
+
+        {blocked ? (
+          <div className="mt-4 flex gap-3 rounded-xl bg-[#FFF0C7] p-4 text-[#715914]">
+            <Lock
+              size={20}
+              className="shrink-0"
+              aria-hidden="true"
+            />
+
+            <p className="text-sm leading-5">
+              This deal has{" "}
+              {deal.claimCount} customer
+              claim
+              {deal.claimCount === 1
+                ? ""
+                : "s"}
+              . Close it instead so
+              customers keep their receipt.
+            </p>
+          </div>
+        ) : (
+          <p className="mt-4 text-sm leading-6 text-black/50">
+            This permanently removes the
+            deal. It is allowed because no
+            customer has claimed it.
           </p>
+        )}
 
-          <h2 className="mt-2 text-3xl font-black tracking-tight">
-            {deal.title}
-          </h2>
+        <div
+          className="mt-6 grid grid-cols-2 gap-2"
+          style={{
+            paddingBottom:
+              "env(safe-area-inset-bottom)",
+          }}
+        >
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-12 rounded-xl bg-black/[0.06] text-sm font-black text-black/55"
+          >
+            {blocked ? "Close" : "Cancel"}
+          </button>
 
-          {blocked ? (
-            <p className="mt-4 rounded-2xl bg-[#fff6df] p-4 text-sm font-semibold leading-6 text-[#74501f]">
-              This deal has {deal.claimCount} customer claim
-              {deal.claimCount === 1 ? "" : "s"}. It cannot be deleted. Close
-              it instead so customers keep their receipt history.
-            </p>
+          {!blocked ? (
+            <button
+              type="button"
+              onClick={onConfirm}
+              disabled={busy}
+              className="min-h-12 rounded-xl bg-[#8A3A20] text-sm font-black text-white disabled:opacity-50"
+            >
+              {busy
+                ? "Deleting…"
+                : "Delete deal"}
+            </button>
           ) : (
-            <p className="mt-4 text-sm leading-6 text-black/55 dark:text-white/45">
-              This will permanently delete the deal. This is only allowed
-              because no customer has claimed it yet.
-            </p>
-          )}
-
-          <div className="mt-6 flex justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full bg-[#F4EFE6] px-5 py-3 font-black text-black/55 transition hover:text-black dark:bg-[#171411] dark:text-white/50 dark:hover:text-white"
+              className="min-h-12 rounded-xl bg-[#18392B] text-sm font-black text-white"
             >
-              Close
+              Understood
             </button>
-
-            {!blocked ? (
-              <button
-                type="button"
-                onClick={onConfirm}
-                disabled={busy}
-                className="rounded-full bg-[#8a3a20] px-5 py-3 font-black text-white transition hover:bg-[#723019] disabled:opacity-60"
-              >
-                {busy ? "Deleting..." : "Delete"}
-              </button>
-            ) : null}
-          </div>
+          )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function DealsLoading() {
+  return (
+    <div className="space-y-3 animate-pulse">
+      {Array.from({
+        length: 3,
+      }).map((_, index) => (
+        <div
+          key={index}
+          className="h-64 rounded-[1.4rem] bg-black/[0.06]"
+        />
+      ))}
     </div>
   );
 }

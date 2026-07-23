@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ArrowRight,
   CircleAlert,
   Clock3,
   Euro,
@@ -10,48 +9,90 @@ import {
   Store,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 
 import {
   createBusinessDeal,
   fetchBusinessStores,
   type BusinessStoreOption,
 } from "@/lib/api/business-create";
+import { formatMoney } from "@/lib/utils/format";
 
-type DealStatus = "draft" | "available";
+type DealStatus =
+  | "draft"
+  | "available";
 
 const categories = [
   { value: "bakery", label: "Bakery" },
-  { value: "fruit_veg", label: "Fruit & veg" },
+  {
+    value: "fruit_veg",
+    label: "Fruit & veg",
+  },
   { value: "grocery", label: "Grocery" },
-  { value: "ready_meal", label: "Ready meal" },
-  { value: "family_pack", label: "Family pack" },
-  { value: "mystery_bag", label: "Mystery bag" },
+  {
+    value: "ready_meal",
+    label: "Ready meal",
+  },
+  {
+    value: "family_pack",
+    label: "Family pack",
+  },
+  {
+    value: "mystery_bag",
+    label: "Mystery bag",
+  },
 ];
 
+const fieldClass =
+  "min-h-12 w-full min-w-0 rounded-xl border border-black/10 bg-[#F8F5EE] px-3 text-base outline-none focus:border-[#6F7D43] disabled:opacity-50";
+
 function toDatetimeLocal(date: Date) {
-  const offset = date.getTimezoneOffset();
-  const local = new Date(date.getTime() - offset * 60 * 1000);
-  return local.toISOString().slice(0, 16);
+  const offset =
+    date.getTimezoneOffset();
+
+  return new Date(
+    date.getTime() -
+      offset * 60 * 1000,
+  )
+    .toISOString()
+    .slice(0, 16);
 }
 
 function getDefaultPickupStart() {
   const date = new Date();
-  date.setMinutes(date.getMinutes() + 60);
+
+  date.setMinutes(
+    date.getMinutes() + 60,
+  );
+
   return toDatetimeLocal(date);
 }
 
 function getDefaultPickupEnd() {
   const date = new Date();
-  date.setHours(date.getHours() + 4);
+
+  date.setHours(
+    date.getHours() + 4,
+  );
+
   return toDatetimeLocal(date);
 }
 
-function localDateTimeToISOString(value: string) {
+function localDateTimeToISOString(
+  value: string,
+) {
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
-    throw new Error("Invalid pickup time.");
+    throw new Error(
+      "Enter a valid pickup time.",
+    );
   }
 
   return date.toISOString();
@@ -60,31 +101,80 @@ function localDateTimeToISOString(value: string) {
 export function BusinessCreateDealForm() {
   const router = useRouter();
 
-  const [stores, setStores] = useState<BusinessStoreOption[]>([]);
-  const [businessId, setBusinessId] = useState("");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("bakery");
-  const [price, setPrice] = useState("2.99");
-  const [originalPrice, setOriginalPrice] = useState("8.50");
-  const [quantity, setQuantity] = useState("5");
-  const [pickupStart, setPickupStart] = useState(getDefaultPickupStart);
-  const [pickupEnd, setPickupEnd] = useState(getDefaultPickupEnd);
-  const [busy, setBusy] = useState(false);
-  const [loadingStores, setLoadingStores] = useState(true);
-  const [message, setMessage] = useState<string | null>(null);
+  const [stores, setStores] = useState<
+    BusinessStoreOption[]
+  >([]);
 
-  const selectedStore = useMemo(() => {
-    return stores.find((store) => store.id === businessId) || null;
-  }, [stores, businessId]);
+  const [businessId, setBusinessId] =
+    useState("");
+
+  const [title, setTitle] =
+    useState("");
+
+  const [description, setDescription] =
+    useState("");
+
+  const [category, setCategory] =
+    useState("bakery");
+
+  const [price, setPrice] =
+    useState("2.99");
+
+  const [
+    originalPrice,
+    setOriginalPrice,
+  ] = useState("8.50");
+
+  const [quantity, setQuantity] =
+    useState("5");
+
+  const [
+    pickupStart,
+    setPickupStart,
+  ] = useState(getDefaultPickupStart);
+
+  const [pickupEnd, setPickupEnd] =
+    useState(getDefaultPickupEnd);
+
+  const [busy, setBusy] =
+    useState(false);
+
+  const [
+    loadingStores,
+    setLoadingStores,
+  ] = useState(true);
+
+  const [message, setMessage] =
+    useState<string | null>(null);
+
+  const selectedStore = useMemo(
+    () =>
+      stores.find(
+        (store) =>
+          store.id === businessId,
+      ) || null,
+    [stores, businessId],
+  );
 
   const savings = useMemo(() => {
     const dealPrice = Number(price);
-    const beforePrice = Number(originalPrice);
 
-    if (!dealPrice || !beforePrice || beforePrice <= dealPrice) return null;
+    const beforePrice =
+      Number(originalPrice);
 
-    return Math.round(((beforePrice - dealPrice) / beforePrice) * 100);
+    if (
+      !dealPrice ||
+      !beforePrice ||
+      beforePrice <= dealPrice
+    ) {
+      return null;
+    }
+
+    return Math.round(
+      ((beforePrice - dealPrice) /
+        beforePrice) *
+        100,
+    );
   }, [price, originalPrice]);
 
   async function loadStores() {
@@ -92,14 +182,22 @@ export function BusinessCreateDealForm() {
     setMessage(null);
 
     try {
-      const nextStores = await fetchBusinessStores();
+      const nextStores =
+        await fetchBusinessStores();
+
       setStores(nextStores);
 
       if (nextStores[0]) {
-        setBusinessId(nextStores[0].id);
+        setBusinessId(
+          nextStores[0].id,
+        );
       }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not load stores.");
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not load stores.",
+      );
     } finally {
       setLoadingStores(false);
     }
@@ -109,360 +207,539 @@ export function BusinessCreateDealForm() {
     void loadStores();
   }, []);
 
-  async function submitDeal(status: DealStatus) {
+  async function submitDeal(
+    status: DealStatus,
+  ) {
     setBusy(true);
     setMessage(null);
 
     try {
-      const numericPrice = Number(price);
-      const numericOriginalPrice = originalPrice.trim()
-        ? Number(originalPrice)
-        : null;
-      const numericQuantity = Number(quantity);
+      const numericPrice =
+        Number(price);
+
+      const numericOriginalPrice =
+        originalPrice.trim()
+          ? Number(originalPrice)
+          : null;
+
+      const numericQuantity =
+        Number(quantity);
 
       if (!businessId) {
-        throw new Error("Choose a store.");
+        throw new Error(
+          "Choose a store.",
+        );
       }
 
       if (!title.trim()) {
-        throw new Error("Add a title.");
+        throw new Error(
+          "Add a deal title.",
+        );
       }
 
-      if (!Number.isFinite(numericPrice) || numericPrice <= 0) {
-        throw new Error("Add a valid deal price.");
+      if (
+        !Number.isFinite(
+          numericPrice,
+        ) ||
+        numericPrice <= 0
+      ) {
+        throw new Error(
+          "Add a valid deal price.",
+        );
       }
 
       if (
         numericOriginalPrice !== null &&
-        (!Number.isFinite(numericOriginalPrice) ||
-          numericOriginalPrice < numericPrice)
+        (!Number.isFinite(
+          numericOriginalPrice,
+        ) ||
+          numericOriginalPrice <
+            numericPrice)
       ) {
-        throw new Error("Original price should be higher than the deal price.");
+        throw new Error(
+          "Original price must be at least the deal price.",
+        );
       }
 
-      if (!Number.isInteger(numericQuantity) || numericQuantity < 1) {
-        throw new Error("Quantity must be at least 1.");
+      if (
+        !Number.isInteger(
+          numericQuantity,
+        ) ||
+        numericQuantity < 1
+      ) {
+        throw new Error(
+          "Quantity must be at least 1.",
+        );
       }
 
-      const created = await createBusinessDeal({
+      const pickupStartDate =
+        new Date(pickupStart);
+
+      const pickupEndDate =
+        new Date(pickupEnd);
+
+      if (
+        Number.isNaN(
+          pickupStartDate.getTime(),
+        ) ||
+        Number.isNaN(
+          pickupEndDate.getTime(),
+        )
+      ) {
+        throw new Error(
+          "Enter valid pickup times.",
+        );
+      }
+
+      if (
+        pickupEndDate.getTime() <=
+        pickupStartDate.getTime()
+      ) {
+        throw new Error(
+          "Pickup end must be after pickup start.",
+        );
+      }
+
+      await createBusinessDeal({
         business_id: businessId,
         title: title.trim(),
-        description: description.trim(),
+        description:
+          description.trim(),
         category,
         price: numericPrice,
-        original_price: numericOriginalPrice,
-        quantity_total: numericQuantity,
-        pickup_start: localDateTimeToISOString(pickupStart),
-        pickup_end: localDateTimeToISOString(pickupEnd),
+        original_price:
+          numericOriginalPrice,
+        quantity_total:
+          numericQuantity,
+        pickup_start:
+          localDateTimeToISOString(
+            pickupStart,
+          ),
+        pickup_end:
+          localDateTimeToISOString(
+            pickupEnd,
+          ),
         status,
       });
 
-      if (status === "available") {
-        router.push(`/deals/${created.id}`);
-      } else {
-        router.push("/business/deals");
-      }
+      router.replace(
+        "/business/deals",
+      );
+
+      router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not create deal.");
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not create deal.",
+      );
     } finally {
       setBusy(false);
     }
   }
 
+  function handleSubmit(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    void submitDeal("available");
+  }
+
   return (
-    <div className="space-y-7 pb-16">
-      <section className="relative overflow-hidden rounded-[2.25rem] bg-[#6F7D43] p-6 text-white shadow-[0_24px_70px_rgba(95,78,55,0.14)] md:p-8">
-        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#9baa6a]/30 blur-3xl" />
-        <div className="absolute bottom-0 left-1/2 h-32 w-72 rounded-full bg-[#b76e45]/20 blur-3xl" />
-
-        <div className="relative z-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-          <div>
-            <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-wide text-[#dfe8b6]">
-              <PackagePlus size={14} />
-              Business
-            </p>
-
-            <h1 className="mt-4 max-w-3xl text-4xl font-black tracking-tight md:text-6xl">
-              Create a rescue deal
-            </h1>
-
-            <p className="mt-3 max-w-2xl text-white/62">
-              Publish surplus food, set pickup times and make it available to
-              customers instantly.
-            </p>
-          </div>
-
-          <div className="rounded-[1.5rem] bg-white/10 px-5 py-4 backdrop-blur">
-            <p className="text-xs font-black uppercase tracking-wide text-white/45">
-              Status
-            </p>
-            <p className="mt-1 text-2xl font-black">New deal</p>
-          </div>
-        </div>
-      </section>
-
+    <form
+      onSubmit={handleSubmit}
+      className="pb-2"
+    >
       {message ? (
-        <div className="rounded-[1.5rem] bg-[#fff0ea] p-4 text-[#8a3a20]">
-          <div className="flex gap-3">
-            <CircleAlert size={22} className="mt-0.5 shrink-0" />
-            <p className="font-semibold">{message}</p>
-          </div>
+        <div className="mb-4 flex gap-3 rounded-xl bg-[#FFF0EA] p-4 text-[#8A3A20]">
+          <CircleAlert
+            size={20}
+            className="shrink-0"
+            aria-hidden="true"
+          />
+
+          <p className="text-sm font-semibold">
+            {message}
+          </p>
         </div>
       ) : null}
 
-      <section className="grid gap-5 lg:grid-cols-[1fr_360px]">
-        <div className="rounded-[1.75rem] bg-white p-5 shadow-[0_10px_30px_rgba(95,78,55,0.08)] ring-1 ring-[#DDD2C2] dark:bg-[#241f1a] dark:ring-white/10 md:p-6">
-          <div className="grid gap-5">
-            <label className="grid gap-2">
-              <span className="text-sm font-black uppercase tracking-wide text-black/40 dark:text-white/35">
-                Store
-              </span>
-
-              <select
-                value={businessId}
-                onChange={(event) => setBusinessId(event.target.value)}
-                disabled={loadingStores || stores.length === 0}
-                className="min-h-14 rounded-2xl border border-black/10 bg-[#FBF8F2] px-4 font-semibold outline-none focus:border-[#6f7d43] disabled:opacity-60 dark:border-white/10 dark:bg-[#171411]"
-              >
-                {stores.map((store) => (
-                  <option key={store.id} value={store.id}>
-                    {store.name} {store.city ? `· ${store.city}` : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="grid gap-2">
-              <span className="text-sm font-black uppercase tracking-wide text-black/40 dark:text-white/35">
-                Deal title
-              </span>
-
-              <input
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                placeholder="Bakery Rescue Bag"
-                className="min-h-14 rounded-2xl border border-black/10 bg-[#FBF8F2] px-4 text-lg font-black outline-none focus:border-[#6f7d43] dark:border-white/10 dark:bg-[#171411]"
-              />
-            </label>
-
-            <label className="grid gap-2">
-              <span className="text-sm font-black uppercase tracking-wide text-black/40 dark:text-white/35">
-                Description
-              </span>
-
-              <textarea
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                placeholder="A surprise mix of fresh bread, pastries and end-of-day bakery extras."
-                rows={5}
-                className="rounded-2xl border border-black/10 bg-[#FBF8F2] px-4 py-3 font-semibold leading-6 outline-none focus:border-[#6f7d43] dark:border-white/10 dark:bg-[#171411]"
-              />
-            </label>
-
-            <div className="grid gap-5 md:grid-cols-2">
-              <label className="grid gap-2">
-                <span className="text-sm font-black uppercase tracking-wide text-black/40 dark:text-white/35">
-                  Category
-                </span>
-
+      <div className="space-y-4">
+        <FormSection
+          title="Store"
+          icon={
+            <Store
+              size={19}
+              aria-hidden="true"
+            />
+          }
+        >
+          {loadingStores ? (
+            <div className="h-12 animate-pulse rounded-xl bg-black/[0.06]" />
+          ) : stores.length === 0 ? (
+            <div className="rounded-xl bg-[#FFF0EA] p-4 text-sm font-semibold text-[#8A3A20]">
+              This account is not connected
+              to a store.
+            </div>
+          ) : (
+            <>
+              <Field label="Publishing from">
                 <select
-                  value={category}
-                  onChange={(event) => setCategory(event.target.value)}
-                  className="min-h-14 rounded-2xl border border-black/10 bg-[#FBF8F2] px-4 font-semibold outline-none focus:border-[#6f7d43] dark:border-white/10 dark:bg-[#171411]"
+                  value={businessId}
+                  onChange={(event) =>
+                    setBusinessId(
+                      event.target.value,
+                    )
+                  }
+                  className={fieldClass}
                 >
-                  {categories.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
+                  {stores.map((store) => (
+                    <option
+                      key={store.id}
+                      value={store.id}
+                    >
+                      {store.name}
+                      {store.city
+                        ? ` · ${store.city}`
+                        : ""}
                     </option>
                   ))}
                 </select>
-              </label>
+              </Field>
 
-              <label className="grid gap-2">
-                <span className="text-sm font-black uppercase tracking-wide text-black/40 dark:text-white/35">
-                  Quantity
-                </span>
+              {selectedStore ? (
+                <div className="rounded-xl bg-[#E9EDDD] px-3 py-2.5">
+                  <p className="text-sm font-black text-[#18392B]">
+                    {selectedStore.name}
+                  </p>
 
-                <input
-                  value={quantity}
-                  onChange={(event) => setQuantity(event.target.value)}
-                  inputMode="numeric"
-                  className="min-h-14 rounded-2xl border border-black/10 bg-[#FBF8F2] px-4 font-black outline-none focus:border-[#6f7d43] dark:border-white/10 dark:bg-[#171411]"
-                />
-              </label>
-            </div>
-
-            <div className="grid gap-5 md:grid-cols-2">
-              <label className="grid gap-2">
-                <span className="text-sm font-black uppercase tracking-wide text-black/40 dark:text-white/35">
-                  Deal price
-                </span>
-
-                <div className="relative">
-                  <Euro
-                    size={18}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-black/35 dark:text-white/30"
-                  />
-                  <input
-                    value={price}
-                    onChange={(event) => setPrice(event.target.value)}
-                    inputMode="decimal"
-                    className="min-h-14 w-full rounded-2xl border border-black/10 bg-[#FBF8F2] pl-11 pr-4 text-xl font-black outline-none focus:border-[#6f7d43] dark:border-white/10 dark:bg-[#171411]"
-                  />
+                  <p className="mt-1 text-xs leading-5 text-[#18392B]/60">
+                    {[
+                      selectedStore.address,
+                      selectedStore.city,
+                    ]
+                      .filter(Boolean)
+                      .join(", ") ||
+                      "Address not added"}
+                  </p>
                 </div>
-              </label>
+              ) : null}
+            </>
+          )}
+        </FormSection>
 
-              <label className="grid gap-2">
-                <span className="text-sm font-black uppercase tracking-wide text-black/40 dark:text-white/35">
-                  Original price
-                </span>
+        <FormSection
+          title="Food details"
+          icon={
+            <PackagePlus
+              size={19}
+              aria-hidden="true"
+            />
+          }
+        >
+          <Field label="Deal title">
+            <input
+              value={title}
+              onChange={(event) =>
+                setTitle(
+                  event.target.value,
+                )
+              }
+              placeholder="Bakery Rescue Bag"
+              maxLength={90}
+              className={`${fieldClass} font-bold`}
+            />
+          </Field>
 
-                <div className="relative">
-                  <Euro
-                    size={18}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-black/35 dark:text-white/30"
-                  />
-                  <input
-                    value={originalPrice}
-                    onChange={(event) => setOriginalPrice(event.target.value)}
-                    inputMode="decimal"
-                    className="min-h-14 w-full rounded-2xl border border-black/10 bg-[#FBF8F2] pl-11 pr-4 text-xl font-black outline-none focus:border-[#6f7d43] dark:border-white/10 dark:bg-[#171411]"
-                  />
-                </div>
-              </label>
-            </div>
+          <Field label="Description">
+            <textarea
+              value={description}
+              onChange={(event) =>
+                setDescription(
+                  event.target.value,
+                )
+              }
+              placeholder="What might customers receive?"
+              rows={4}
+              maxLength={500}
+              className={`${fieldClass} py-3 leading-5`}
+            />
+          </Field>
 
-            <div className="grid gap-5 md:grid-cols-2">
-              <label className="grid gap-2">
-                <span className="text-sm font-black uppercase tracking-wide text-black/40 dark:text-white/35">
-                  Pickup starts
-                </span>
-
-                <input
-                  type="datetime-local"
-                  value={pickupStart}
-                  onChange={(event) => setPickupStart(event.target.value)}
-                  className="min-h-14 rounded-2xl border border-black/10 bg-[#FBF8F2] px-4 font-semibold outline-none focus:border-[#6f7d43] dark:border-white/10 dark:bg-[#171411]"
-                />
-              </label>
-
-              <label className="grid gap-2">
-                <span className="text-sm font-black uppercase tracking-wide text-black/40 dark:text-white/35">
-                  Pickup ends
-                </span>
-
-                <input
-                  type="datetime-local"
-                  value={pickupEnd}
-                  onChange={(event) => setPickupEnd(event.target.value)}
-                  className="min-h-14 rounded-2xl border border-black/10 bg-[#FBF8F2] px-4 font-semibold outline-none focus:border-[#6f7d43] dark:border-white/10 dark:bg-[#171411]"
-                />
-              </label>
-            </div>
-          </div>
-
-          <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-            <button
-              type="button"
-              onClick={() => submitDeal("available")}
-              disabled={busy || loadingStores || stores.length === 0}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[#6F7D43] px-6 py-4 font-black text-white transition hover:bg-[#556235] disabled:opacity-60 dark:bg-[#9baa6a] dark:text-[#2F261F]"
+          <Field label="Category">
+            <select
+              value={category}
+              onChange={(event) =>
+                setCategory(
+                  event.target.value,
+                )
+              }
+              className={fieldClass}
             >
-              Publish deal
-              <ArrowRight size={18} />
-            </button>
+              {categories.map((item) => (
+                <option
+                  key={item.value}
+                  value={item.value}
+                >
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </FormSection>
 
-            <button
-              type="button"
-              onClick={() => submitDeal("draft")}
-              disabled={busy || loadingStores || stores.length === 0}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#F4EFE6] px-6 py-4 font-black text-[#6F7D43] transition hover:bg-[#EEF1E3] disabled:opacity-60 dark:bg-[#171411] dark:text-[#E1E9B8]"
-            >
-              <Save size={18} />
-              Save draft
-            </button>
-          </div>
-        </div>
-
-        <aside className="space-y-5">
-          <div className="rounded-[1.75rem] bg-white p-5 shadow-[0_10px_30px_rgba(95,78,55,0.08)] ring-1 ring-[#DDD2C2] dark:bg-[#241f1a] dark:ring-white/10 md:p-6">
-            <div className="flex items-start gap-3">
-              <Store className="mt-1 text-[#6F7D43]" size={22} />
-              <div>
-                <p className="text-sm font-black uppercase tracking-wide text-black/35 dark:text-white/30">
-                  Selected store
-                </p>
-                <h3 className="mt-1 text-2xl font-black tracking-tight">
-                  {selectedStore?.name || "No store selected"}
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-black/50 dark:text-white/40">
-                  {selectedStore
-                    ? `${selectedStore.address || "Address not set"} ${
-                        selectedStore.city ? `· ${selectedStore.city}` : ""
-                      }`
-                    : "Connect this user to a business first."}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-[1.75rem] bg-[#EEF1E3] p-5 text-[#2F261F] shadow-[0_10px_30px_rgba(95,78,55,0.08)] dark:bg-[#556235] dark:text-white md:p-6">
-            <p className="text-sm font-black uppercase tracking-wide opacity-55">
-              Preview
-            </p>
-
-            <h3 className="mt-3 text-3xl font-black tracking-tight">
-              {title.trim() || "Your rescue deal"}
-            </h3>
-
-            <p className="mt-3 text-sm leading-6 opacity-65">
-              {description.trim() ||
-                "Add a short description so customers know what they are claiming."}
-            </p>
-
-            <div className="mt-5 grid gap-3">
-              <PreviewTile label="Price" value={`€${Number(price || 0).toFixed(2)}`} />
-              <PreviewTile
-                label="Before"
-                value={
-                  originalPrice.trim()
-                    ? `€${Number(originalPrice || 0).toFixed(2)}`
-                    : "Not set"
+        <FormSection
+          title="Price and quantity"
+          icon={
+            <Euro
+              size={19}
+              aria-hidden="true"
+            />
+          }
+        >
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Deal price">
+              <input
+                value={price}
+                onChange={(event) =>
+                  setPrice(
+                    event.target.value,
+                  )
                 }
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                min="0"
+                className={`${fieldClass} font-black`}
               />
-              <PreviewTile label="Quantity" value={quantity || "0"} />
-              <PreviewTile
-                label="Savings"
-                value={savings !== null ? `${savings}%` : "—"}
+            </Field>
+
+            <Field label="Original price">
+              <input
+                value={originalPrice}
+                onChange={(event) =>
+                  setOriginalPrice(
+                    event.target.value,
+                  )
+                }
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                min="0"
+                className={`${fieldClass} font-black`}
               />
+            </Field>
+          </div>
+
+          <Field label="Number of bags">
+            <input
+              value={quantity}
+              onChange={(event) =>
+                setQuantity(
+                  event.target.value,
+                )
+              }
+              type="number"
+              inputMode="numeric"
+              min="1"
+              step="1"
+              className={`${fieldClass} font-black`}
+            />
+          </Field>
+        </FormSection>
+
+        <FormSection
+          title="Pickup window"
+          icon={
+            <Clock3
+              size={19}
+              aria-hidden="true"
+            />
+          }
+        >
+          <Field label="Pickup starts">
+            <input
+              type="datetime-local"
+              value={pickupStart}
+              onChange={(event) =>
+                setPickupStart(
+                  event.target.value,
+                )
+              }
+              className={fieldClass}
+            />
+          </Field>
+
+          <Field label="Pickup ends">
+            <input
+              type="datetime-local"
+              value={pickupEnd}
+              onChange={(event) =>
+                setPickupEnd(
+                  event.target.value,
+                )
+              }
+              className={fieldClass}
+            />
+          </Field>
+        </FormSection>
+
+        <section className="rounded-[1.4rem] bg-[#18392B] p-4 text-white">
+          <p className="text-[10px] font-black uppercase tracking-[0.1em] text-white/45">
+            Customer preview
+          </p>
+
+          <div className="mt-3 flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h2 className="line-clamp-2 text-lg font-black leading-5">
+                {title.trim() ||
+                  "Your rescue deal"}
+              </h2>
+
+              <p className="mt-1.5 line-clamp-2 text-xs leading-5 text-white/55">
+                {description.trim() ||
+                  "Add a description for customers."}
+              </p>
+            </div>
+
+            <div className="shrink-0 text-right">
+              <p className="text-xl font-black">
+                {Number.isFinite(
+                  Number(price),
+                )
+                  ? formatMoney(
+                      Number(price),
+                    )
+                  : "€0.00"}
+              </p>
+
+              {originalPrice ? (
+                <p className="mt-0.5 text-xs text-white/40 line-through">
+                  {formatMoney(
+                    Number(
+                      originalPrice,
+                    ) || 0,
+                  )}
+                </p>
+              ) : null}
             </div>
           </div>
 
-          <div className="rounded-[1.75rem] bg-white p-5 shadow-[0_10px_30px_rgba(95,78,55,0.08)] ring-1 ring-[#DDD2C2] dark:bg-[#241f1a] dark:ring-white/10 md:p-6">
-            <div className="flex gap-3">
-              <Clock3 className="mt-1 text-[#6F7D43]" size={20} />
-              <div>
-                <p className="font-black">Pickup window</p>
-                <p className="mt-1 text-sm leading-6 text-black/50 dark:text-white/40">
-                  Customers can claim the deal immediately, but the food should
-                  only be handed over during the pickup window.
-                </p>
-              </div>
-            </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <PreviewPill>
+              {quantity || "0"} available
+            </PreviewPill>
+
+            <PreviewPill>
+              {savings !== null
+                ? `${savings}% saving`
+                : "No saving calculated"}
+            </PreviewPill>
+
+            <PreviewPill>
+              {selectedStore?.name ||
+                "No store"}
+            </PreviewPill>
           </div>
-        </aside>
-      </section>
-    </div>
+        </section>
+      </div>
+
+      <footer
+        className="sticky bottom-0 z-20 -mx-4 mt-5 grid grid-cols-[0.8fr_1.2fr] gap-2 border-t border-black/[0.07] bg-[#F5F2EB]/96 px-4 py-3 backdrop-blur"
+        style={{
+          paddingBottom:
+            "max(12px, env(safe-area-inset-bottom))",
+        }}
+      >
+        <button
+          type="button"
+          onClick={() =>
+            void submitDeal("draft")
+          }
+          disabled={
+            busy ||
+            loadingStores ||
+            stores.length === 0
+          }
+          className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-black/[0.06] text-sm font-black text-black/55 disabled:opacity-50"
+        >
+          <Save
+            size={17}
+            aria-hidden="true"
+          />
+
+          Save draft
+        </button>
+
+        <button
+          type="submit"
+          disabled={
+            busy ||
+            loadingStores ||
+            stores.length === 0
+          }
+          className="min-h-12 rounded-xl bg-[#18392B] text-sm font-black text-white disabled:opacity-50"
+        >
+          {busy
+            ? "Publishing…"
+            : "Publish deal"}
+        </button>
+      </footer>
+    </form>
   );
 }
 
-function PreviewTile({ label, value }: { label: string; value: string }) {
+function FormSection({
+  title,
+  icon,
+  children,
+}: {
+  title: string;
+  icon: ReactNode;
+  children: ReactNode;
+}) {
   return (
-    <div className="rounded-[1.25rem] bg-white/65 p-4 dark:bg-black/15">
-      <p className="text-xs font-black uppercase tracking-wide opacity-45">
+    <section className="space-y-4 rounded-[1.4rem] border border-black/[0.07] bg-white p-4">
+      <header className="flex items-center gap-2 text-[#18392B]">
+        {icon}
+
+        <h2 className="text-base font-black">
+          {title}
+        </h2>
+      </header>
+
+      {children}
+    </section>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className="grid min-w-0 gap-1.5">
+      <span className="text-[11px] font-black uppercase tracking-[0.06em] text-black/40">
         {label}
-      </p>
-      <p className="mt-1 text-xl font-black">{value}</p>
-    </div>
+      </span>
+
+      {children}
+    </label>
+  );
+}
+
+function PreviewPill({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  return (
+    <span className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase text-white/70">
+      {children}
+    </span>
   );
 }
