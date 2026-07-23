@@ -1083,27 +1083,3 @@ a {
     transform: translateX(-50%);
   }
 }
-
-/* BUSINESS QR MOBILE START */
-
-.business-qr-reader,
-.business-qr-reader > div {
-  width: 100% !important;
-  height: 100% !important;
-  min-height: 100% !important;
-}
-
-.business-qr-reader video,
-.business-qr-reader canvas {
-  width: 100% !important;
-  height: 100% !important;
-  min-height: 100% !important;
-  object-fit: cover !important;
-}
-
-.business-qr-reader img {
-  max-width: 100% !important;
-}
-
-/* BUSINESS QR MOBILE END */
-

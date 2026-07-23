@@ -1,25 +1,23 @@
-import { Shell } from "@/components/layout/shell";
-import { CreateDealForm } from "@/components/dev/create-deal-form";
 import { BusinessGate } from "@/components/business/business-gate";
+import { BusinessCreateDealForm } from "@/components/business/create/business-create-deal-form";
 
-export default function NewDealPage() {
+export default function NewBusinessDealPage() {
   return (
-    <Shell>
-      <BusinessGate>
-      <div className="mx-auto max-w-2xl rounded-[1.75rem] bg-white p-6 shadow-[0_10px_30px_rgba(95,78,55,0.08)] ring-1 ring-[#DDD2C2] dark:bg-[#241f1a] dark:ring-white/10 md:p-8">
-        <p className="text-sm font-semibold uppercase tracking-wide text-[#6F7D43] dark:text-[#E1E9B8]">
-          Selver Demo Store
-        </p>
+    <BusinessGate>
+      <div className="business-form-page">
+        <div className="business-form-page__intro">
+          <p>Create a rescue offer</p>
 
-        <h1 className="mt-1 text-3xl font-black">Create deal</h1>
+          <h1>New deal</h1>
 
-        <p className="mt-2 text-black/60 dark:text-white/55">
-          Publish an end-of-day rescue pack in under a minute.
-        </p>
+          <span>
+            Choose a store, set the collection window and publish the food
+            available today.
+          </span>
+        </div>
 
-        <CreateDealForm />
+        <BusinessCreateDealForm />
       </div>
-      </BusinessGate>
-    </Shell>
+    </BusinessGate>
   );
 }
